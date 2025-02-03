@@ -1,18 +1,17 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using PWA_application_Financial_Assistant;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
-// условная бд с юзерами
-var people = new List<Person>
-{
-    new Person ("mikhail@gmail.com", "1234"),
-    new Person ("ilya@gmail.com", "5678")
-};
-
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<ApplicationContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -20,33 +19,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            // указывает, будет ли валидироваться издатель при валидации токена
             ValidateIssuer = true,
-            // строка, представляющая издателя
             ValidIssuer = AuthOptions.ISSUER,
-            // будет ли валидироваться потребитель токена
             ValidateAudience = true,
-            // установка потребителя токена
             ValidAudience = AuthOptions.AUDIENCE,
-            // будет ли валидироваться время существования
             ValidateLifetime = true,
-            // установка ключа безопасности
             IssuerSigningKey = AuthOptions.GetSymmetricSecurityKey(),
-            // валидация ключа безопасности
             ValidateIssuerSigningKey = true,
         };
     });
 
-// Add services to the container.
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -59,52 +48,99 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapPost("/login", (Person loginData) =>
+static string HashPassword(string password)
 {
-    // находим пользователя
-    Person? person = people.FirstOrDefault(p => p.Email == loginData.Email && p.Password == loginData.Password);
+    using (var sha256 = SHA256.Create())
+    {
+        var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+        return Convert.ToBase64String(bytes);
+    }
+}
 
-    // если пользователь не найден, отправляем статусный код 401
+// Роут для регистрации
+// Program.cs
+
+app.MapPost("/register", async (Person registerData, ApplicationContext db) =>
+{
+    if (string.IsNullOrWhiteSpace(registerData.email) || string.IsNullOrWhiteSpace(registerData.password))
+    {
+        return Results.BadRequest(new { message = "Email и пароль не могут быть пустыми." });
+    }
+
+    // Проверяем, есть ли пользователь с таким email
+    var existingUser = await db.People.FirstOrDefaultAsync(p => p.email == registerData.email);
+    if (existingUser != null)
+    {
+        return Results.BadRequest(new { message = "Пользователь с таким email уже существует." });
+    }
+
+    // Хэшируем пароль
+    var hashedPassword = HashPassword(registerData.password);
+
+    // Сохраняем пользователя в базе
+    var newPerson = new Person
+    {
+        email = registerData.email,
+        password = hashedPassword,
+    };
+
+    db.People.Add(newPerson);
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new { message = "Регистрация успешна." });
+});
+
+
+// Роут для логина
+app.MapPost("/login", async (Person loginData, ApplicationContext db) =>
+{
+    if (string.IsNullOrWhiteSpace(loginData.email) || string.IsNullOrWhiteSpace(loginData.password))
+    {
+        return Results.BadRequest(new { message = "Email и пароль не могут быть пустыми." });
+    }
+
+    var hashedPassword = HashPassword(loginData.password);
+
+    var person = await db.People.FirstOrDefaultAsync(p => p.email == loginData.email && p.password == hashedPassword);
+
     if (person is null)
     {
         return Results.Unauthorized();
     }
 
-    var claims = new List<Claim> { new Claim(ClaimTypes.Name, person.Email) };
-    // создаём JWT-токен
+    var claims = new List<Claim> { new Claim(ClaimTypes.Name, person.email) };
     var jwt = new JwtSecurityToken(
-            issuer: AuthOptions.ISSUER,
-            audience: AuthOptions.AUDIENCE,
-            claims: claims,
-            expires: DateTime.UtcNow.Add(TimeSpan.FromMinutes(2)), // время действия 2 минуты
-            signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
+        issuer: AuthOptions.ISSUER,
+        audience: AuthOptions.AUDIENCE,
+        claims: claims,
+        expires: DateTime.UtcNow.AddMinutes(2),
+        signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
 
     var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
 
-    //формируем ответ
-    var response = new
+    return Results.Json(new
     {
         access_token = encodedJwt,
-        username = person.Email,
-    };
-
-    return Results.Json(response);
+        username = person.email,
+    });
 });
+
+// Пример защищённого роута
+app.Map("/data", [Authorize] (HttpContext context) => $"Hello World!");
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.Map("/data", [Authorize] (HttpContext context) => $"Hello World!");
-
 app.Run();
 
 public class AuthOptions
 {
-    public const string ISSUER = "FinancialServer"; // Издатель токена
-    public const string AUDIENCE = "FinancialClient"; // Потребитель токена
-    const string KEY = "mysupersecret_secretsecretsecretkey!123"; //  Ключ для шифрования
+    public const string ISSUER = "FinancialServer";
+    public const string AUDIENCE = "FinancialClient";
+    const string KEY = "mysupersecret_secretsecretsecretkey!123";
     public static SymmetricSecurityKey GetSymmetricSecurityKey() => new SymmetricSecurityKey(Encoding.UTF8.GetBytes(KEY));
 }
 
-record class Person(string Email, string Password);
+// Метод для хэширования пароля
+

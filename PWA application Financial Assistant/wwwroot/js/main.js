@@ -73,41 +73,66 @@ goalForm.addEventListener('submit', handleGoalSubmit);
 expenseForm.addEventListener('submit', handleExpenseSubmit);
 
 // Auth handlers
-function handleRegistration(e) {
+async function handleRegistration(e) {
     e.preventDefault();
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+    const email = document.getElementById('RegistrationEmail').value;
+    const password = document.getElementById('RegistrationPassword').value;
 
-    // Store user data
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    users.push({ email, password });
-    localStorage.setItem('users', JSON.stringify(users));
-    localStorage.setItem('currentUser', JSON.stringify({ email }));
+    try {
+        const response = await fetch('/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        });
 
-    // Show dashboard
-    registrationForm.classList.add('hidden');
-    dashboard.classList.remove('hidden');
-    showPage('statistics');
+        if (response.ok) {
+            alert('Вы успешно зарегистрированы!');
+            registrationForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+        } else {
+            const error = await response.json();
+            alert(`Ошибка регистрации: ${error.message}`);
+        }
+    } catch (err) {
+        console.error('Ошибка регистрации:', err);
+        alert('Произошла ошибка при регистрации.');
+    }
 }
 
-function handleLogin(e) {
+
+async function handleLogin(e) {
     e.preventDefault();
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
 
-    // Check credentials
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find(u => u.email === email && u.password === password);
+    try {
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        });
 
-    if (user) {
-        localStorage.setItem('currentUser', JSON.stringify({ email }));
-        loginForm.classList.add('hidden');
-        dashboard.classList.remove('hidden');
-        showPage('statistics');
-    } else {
-        alert('Неверный email или пароль');
+        if (response.ok) {
+            const data = await response.json();
+            alert(`Добро пожаловать, ${data.username}!`);
+            localStorage.setItem('accessToken', data.access_token);
+
+            loginForm.classList.add('hidden');
+            dashboard.classList.remove('hidden');
+            showPage('statistics');
+        } else {
+            alert('Неправильный email или пароль.');
+        }
+    } catch (err) {
+        console.error('Ошибка входа:', err);
+        alert('Произошла ошибка при входе.');
     }
 }
+
 
 // Navigation functions
 function showPage(pageName) {
@@ -116,7 +141,7 @@ function showPage(pageName) {
     expensesPage.classList.add('hidden');
     statisticsPage.classList.add('hidden');
 
-    switch(pageName) {
+    switch (pageName) {
         case 'goals':
             goalsPage.classList.remove('hidden');
             loadGoals();
@@ -191,7 +216,8 @@ function toggleMenu() {
 
 // Handle Logout
 function handleLogout() {
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem('jwt');
+    localStorage.removeItem('username');
     localStorage.removeItem('goals');
     localStorage.removeItem('expenses');
     dashboard.classList.add('hidden');
@@ -225,26 +251,21 @@ function handleGoalSubmit(e) {
 
     if (requiredMonthlySavings > maxPossibleMonthlySavings) {
         alert('Внимание! С текущим доходом достижение цели к указанной дате может быть затруднительным. Рекомендуем увеличить срок или уменьшить целевую сумму.');
-        return;
     }
 
-    const goal = {
+    // Save the goal
+    const goals = JSON.parse(localStorage.getItem('goals') || '[]');
+    goals.push({
         title,
         targetDate,
         amount,
+        income,
         currency,
-        requiredMonthlySavings,
-        createdAt: new Date().toISOString()
-    };
-
-    // Save goal
-    const existingGoals = JSON.parse(localStorage.getItem('goals') || '[]');
-    localStorage.setItem('goals', JSON.stringify([...existingGoals, goal]));
-
-    // Update UI
+        requiredMonthlySavings
+    });
+    localStorage.setItem('goals', JSON.stringify(goals));
     loadGoals();
     goalModal.classList.add('hidden');
-    goalForm.reset();
 }
 
 // Handle Expense Submit
@@ -252,26 +273,28 @@ function handleExpenseSubmit(e) {
     e.preventDefault();
 
     const formData = new FormData(expenseForm);
-    const expense = {
-        title: formData.get('title'),
-        date: formData.get('date'),
-        amount: parseFloat(formData.get('amount')),
-        currency: formData.get('currency'),
-        category: formData.get('category'),
-        createdAt: new Date().toISOString()
-    };
+    const title = formData.get('title');
+    const amount = parseFloat(formData.get('amount'));
+    const category = formData.get('category');
+    const date = formData.get('date');
 
-    const existingExpenses = JSON.parse(localStorage.getItem('expenses') || '[]');
-    localStorage.setItem('expenses', JSON.stringify([...existingExpenses, expense]));
+    const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+    expenses.push({
+        title,
+        amount,
+        category,
+        date
+    });
 
+    localStorage.setItem('expenses', JSON.stringify(expenses));
     loadExpenses();
     expenseModal.classList.add('hidden');
-    expenseForm.reset();
 }
 
 // Load Goals
 function loadGoals() {
     const goals = JSON.parse(localStorage.getItem('goals') || '[]');
+
     if (goals.length === 0) {
         goalsList.innerHTML = `
             <div class="bg-white rounded-lg shadow-lg p-6 text-center animate-fadeIn">
@@ -305,73 +328,21 @@ function loadGoals() {
 // Load Expenses
 function loadExpenses() {
     const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
-    if (expenses.length === 0) {
-        expensesList.innerHTML = `
-            <div class="bg-white rounded-lg shadow-lg p-6 text-center animate-fadeIn">
-                <p class="text-lg text-gray-600 mb-4">
-                    У вас пока нет расходов. Нажмите + чтобы добавить новые расходы.
-                </p>
-            </div>
-        `;
-        return;
-    }
-
     expensesList.innerHTML = expenses.map(expense => `
         <div class="expense-card">
             <h3>${expense.title}</h3>
             <div class="expense-info">
-                <span>Дата:</span>
-                <span>${new Date(expense.date).toLocaleDateString('ru-RU')}</span>
-            </div>
-            <div class="expense-info">
                 <span>Сумма:</span>
-                <span>${expense.amount.toLocaleString('ru-RU')} ${currencySymbols[expense.currency]}</span>
+                <span>${expense.amount.toLocaleString('ru-RU')} ₽</span>
             </div>
             <div class="expense-info">
                 <span>Категория:</span>
-                <span>${getCategoryName(expense.category)}</span>
+                <span>${expense.category}</span>
+            </div>
+            <div class="expense-info">
+                <span>Дата:</span>
+                <span>${new Date(expense.date).toLocaleDateString('ru-RU')}</span>
             </div>
         </div>
     `).join('');
 }
-
-// Helper function to get category name
-function getCategoryName(category) {
-    const categories = {
-        food: 'Еда',
-        transport: 'Транспорт',
-        entertainment: 'Развлечения',
-        shopping: 'Покупки',
-        health: 'Здоровье',
-        utilities: 'Коммунальные услуги',
-        other: 'Другое'
-    };
-    return categories[category] || category;
-}
-
-// Check if user is logged in on page load
-window.addEventListener('load', () => {
-    const user = localStorage.getItem('currentUser');
-    if (user) {
-        registrationForm.classList.add('hidden');
-        loginForm.classList.add('hidden');
-        dashboard.classList.remove('hidden');
-        showPage('statistics');
-    }
-});
-
-// Add event listeners for navigation
-document.getElementById('goalsLink').addEventListener('click', () => {
-    showPage('goals');
-    toggleMenu();
-});
-
-document.getElementById('expensesLink').addEventListener('click', () => {
-    showPage('expenses');
-    toggleMenu();
-});
-
-document.getElementById('statisticsLink').addEventListener('click', () => {
-    showPage('statistics');
-    toggleMenu();
-});
