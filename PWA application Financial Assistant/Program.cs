@@ -58,8 +58,6 @@ static string HashPassword(string password)
 }
 
 // Роут для регистрации
-// Program.cs
-
 app.MapPost("/register", async (Person registerData, ApplicationContext db) =>
 {
     if (string.IsNullOrWhiteSpace(registerData.email) || string.IsNullOrWhiteSpace(registerData.password))
@@ -67,17 +65,14 @@ app.MapPost("/register", async (Person registerData, ApplicationContext db) =>
         return Results.BadRequest(new { message = "Email и пароль не могут быть пустыми." });
     }
 
-    // Проверяем, есть ли пользователь с таким email
     var existingUser = await db.People.FirstOrDefaultAsync(p => p.email == registerData.email);
     if (existingUser != null)
     {
         return Results.BadRequest(new { message = "Пользователь с таким email уже существует." });
     }
 
-    // Хэшируем пароль
     var hashedPassword = HashPassword(registerData.password);
 
-    // Сохраняем пользователя в базе
     var newPerson = new Person
     {
         email = registerData.email,
@@ -89,7 +84,6 @@ app.MapPost("/register", async (Person registerData, ApplicationContext db) =>
 
     return Results.Ok(new { message = "Регистрация успешна." });
 });
-
 
 // Роут для логина
 app.MapPost("/login", async (Person loginData, ApplicationContext db) =>
@@ -108,12 +102,17 @@ app.MapPost("/login", async (Person loginData, ApplicationContext db) =>
         return Results.Unauthorized();
     }
 
-    var claims = new List<Claim> { new Claim(ClaimTypes.Name, person.email) };
+    var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, person.personId.ToString()), // Добавляем userId в токен
+        new Claim(ClaimTypes.Name, person.email)
+    };
+
     var jwt = new JwtSecurityToken(
         issuer: AuthOptions.ISSUER,
         audience: AuthOptions.AUDIENCE,
         claims: claims,
-        expires: DateTime.UtcNow.AddMinutes(2),
+        expires: DateTime.UtcNow.AddMinutes(60),
         signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
 
     var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
@@ -122,11 +121,12 @@ app.MapPost("/login", async (Person loginData, ApplicationContext db) =>
     {
         access_token = encodedJwt,
         username = person.email,
+        userId = person.personId // Добавляем userId в ответ
     });
 });
 
 // Пример защищённого роута
-app.Map("/data", [Authorize] (HttpContext context) => $"Hello World!");
+app.Map("/data", [Authorize] (HttpContext context) => $"Hello, {context.User.Identity.Name}!");
 
 app.MapControllerRoute(
     name: "default",
@@ -141,6 +141,3 @@ public class AuthOptions
     const string KEY = "mysupersecret_secretsecretsecretkey!123";
     public static SymmetricSecurityKey GetSymmetricSecurityKey() => new SymmetricSecurityKey(Encoding.UTF8.GetBytes(KEY));
 }
-
-// Метод для хэширования пароля
-

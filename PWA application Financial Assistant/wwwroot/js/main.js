@@ -118,8 +118,20 @@ async function handleLogin(e) {
 
         if (response.ok) {
             const data = await response.json();
-            alert(`Добро пожаловать, ${data.username}!`);
+            console.log("Ответ сервера:", data); // Логируем ответ сервера
+
+            // Проверяем, что data содержит userId
+            if (!data.userId) {
+                console.error("Ошибка: userId не найден в ответе сервера");
+                alert("Ошибка входа: userId не найден.");
+                return;
+            }
+
+            alert(`Добро пожаловать, ${data.username || "пользователь"}!`);
+
+            // Сохраняем accessToken и userId в localStorage
             localStorage.setItem('accessToken', data.access_token);
+            localStorage.setItem('userId', data.userId.toString()); // Убедитесь, что userId сохраняется как строка
 
             loginForm.classList.add('hidden');
             dashboard.classList.remove('hidden');
@@ -132,6 +144,7 @@ async function handleLogin(e) {
         alert('Произошла ошибка при входе.');
     }
 }
+
 
 
 // Navigation functions
@@ -228,45 +241,92 @@ function handleLogout() {
 }
 
 // Handle Goal Submit
-function handleGoalSubmit(e) {
-    e.preventDefault();
+async function handleGoalSubmit(event) {
+    event.preventDefault();
 
-    const formData = new FormData(goalForm);
-    const title = formData.get('title');
-    const targetDate = formData.get('targetDate');
-    const amount = parseFloat(formData.get('amount'));
-    const income = parseFloat(formData.get('income'));
-    const currency = formData.get('currency');
-
-    // Calculate months until target
-    const today = new Date();
-    const targetDateObj = new Date(targetDate);
-    const monthsUntilTarget =
-        (targetDateObj.getFullYear() - today.getFullYear()) * 12 +
-        (targetDateObj.getMonth() - today.getMonth());
-
-    // Calculate required monthly savings
-    const requiredMonthlySavings = amount / monthsUntilTarget;
-    const maxPossibleMonthlySavings = income * 0.5; // Assume max 50% of income can be saved
-
-    if (requiredMonthlySavings > maxPossibleMonthlySavings) {
-        alert('Внимание! С текущим доходом достижение цели к указанной дате может быть затруднительным. Рекомендуем увеличить срок или уменьшить целевую сумму.');
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        console.error("Ошибка: userId не найден в localStorage");
+        alert("Вы не авторизованы.");
+        return;
     }
 
-    // Save the goal
-    const goals = JSON.parse(localStorage.getItem('goals') || '[]');
-    goals.push({
+    const parsedUserId = parseInt(userId, 10);
+    if (isNaN(parsedUserId)) {
+        console.error("Ошибка: userId не является числом");
+        alert("Ошибка: userId не является числом.");
+        return;
+    }
+
+    const title = document.querySelector('[name="title"]').value.trim();
+    const target_date = document.querySelector('[name="targetDate"]').value;
+    const amount = parseFloat(document.querySelector('[name="amount"]').value);
+    const income = parseFloat(document.querySelector('[name="income"]').value);
+    const currency = document.querySelector('[name="currency"]').value.trim();
+
+    if (!title || !target_date || amount <= 0 || income <= 0 || !currency) {
+        console.error("Некорректные данные формы");
+        alert("Все поля должны быть заполнены правильно.");
+        return;
+    }
+
+    const goalData = {
+        personId: parsedUserId, // Используем parsedUserId
         title,
-        targetDate,
+        target_date,
         amount,
         income,
         currency,
-        requiredMonthlySavings
-    });
-    localStorage.setItem('goals', JSON.stringify(goals));
-    loadGoals();
+    };
+
+    console.log("Отправляемые данные:", goalData);
+
+    try {
+        const response = await fetch('https://localhost:7034/api/goals', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+            },
+            body: JSON.stringify(goalData)
+        });
+
+        console.log("Статус ответа:", response.status);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Ответ сервера:", errorData);
+            alert("Ошибка сервера: " + JSON.stringify(errorData));
+            return;
+        }
+
+        alert('Цель успешно добавлена!');
+        event.target.reset();
+
+    } catch (error) {
+        console.error("Ошибка запроса:", error);
+        alert("Ошибка при сохранении цели. Проверьте консоль.");
+    }
+}
+
+
+
+
+
+// Функция для скрытия модального окна (если нужно)
+function hideModal() {
+    const goalModal = document.getElementById('goalModal');
     goalModal.classList.add('hidden');
 }
+
+// Функция для отображения модального окна (если нужно)
+function showModal() {
+    const goalModal = document.getElementById('goalModal');
+    goalModal.classList.remove('hidden');
+}
+
+
+
 
 // Handle Expense Submit
 function handleExpenseSubmit(e) {
