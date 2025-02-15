@@ -98,6 +98,15 @@ namespace PWA_application_Financial_Assistant.Controllers
             return Ok(goal);
         }
 
+        // GET: api/goals
+        public async Task<IActionResult> GetGoals()
+        {
+            var userId = GetUserIdFromToken(HttpContext);
+
+            var goals = await _context.Goals.Where(g => g.personId == userId.Value).ToListAsync();
+            return Ok(goals);
+        }
+
         // Метод для извлечения userId из токена
         private int? GetUserIdFromToken(HttpContext httpContext)
         {

@@ -270,6 +270,22 @@ async function handleGoalSubmit(event) {
         return;
     }
 
+    // Calculate months until target
+    const today = new Date();
+    const targetDateObj = new Date(target_date);
+    const monthsUntilTarget =
+        (targetDateObj.getFullYear() - today.getFullYear()) * 12 +
+        (targetDateObj.getMonth() - today.getMonth());
+
+    // Calculate required monthly savings
+    const required_monthly_savings = amount / monthsUntilTarget;
+    const maxPossibleMonthlySavings = income * 0.5; // Assume max 50% of income can be saved
+
+    if (required_monthly_savings > maxPossibleMonthlySavings) {
+        alert('Внимание! С текущим доходом достижение цели к указанной дате может быть затруднительным. Рекомендуем увеличить срок или уменьшить целевую сумму.');
+        //return;
+    }
+
     const goalData = {
         personId: parsedUserId, // Используем parsedUserId
         title,
@@ -278,6 +294,11 @@ async function handleGoalSubmit(event) {
         income,
         currency,
     };
+
+    loadGoals();
+    loadStatistics();
+    goalModal.classList.add('hidden');
+    goalForm.reset();
 
     console.log("Отправляемые данные:", goalData);
 
@@ -352,38 +373,54 @@ function handleExpenseSubmit(e) {
 }
 
 // Load Goals
-function loadGoals() {
-    const goals = JSON.parse(localStorage.getItem('goals') || '[]');
+async function loadGoals() {
+    try {
+        const response = await fetch("/api/goals", {
+            headers: {
+                "Authorization": `Bearer ${localStorage.getItem("accessToken")}`
+            }
+        });
 
-    if (goals.length === 0) {
-        goalsList.innerHTML = `
-            <div class="bg-white rounded-lg shadow-lg p-6 text-center animate-fadeIn">
-                <p class="text-lg text-gray-600 mb-4">
-                    У вас пока нет целей. Нажмите + чтобы добавить новую цель.
-                </p>
+        if (!response.ok) {
+            throw new Error("Ошибка загрузки целей");
+        }
+
+        const goals = await response.json();
+
+        if (goals.length === 0) {
+            goalsList.innerHTML = `
+                <div class="bg-white rounded-lg shadow-lg p-6 text-center animate-fadeIn">
+                    <p class="text-lg text-gray-600 mb-4">
+                        У вас пока нет целей. Нажмите + чтобы добавить новую цель.
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        goalsList.innerHTML = goals.map(goal => `
+            <div class="goal-card">
+                <h3>${goal.title}</h3>
+                <div class="goal-info">
+                    <span>Цель до:</span>
+                    <span>${new Date(goal.target_date).toLocaleDateString('ru-RU')}</span>
+                </div>
+                <div class="goal-info">
+                    <span>Необходимая сумма:</span>
+                    <span>${goal.amount.toLocaleString('ru-RU')} ${currencySymbols[goal.currency]}</span>
+                </div>
+                <div class="goal-info">
+                    <span>Ежемесячный взнос:</span>
+                    <span class="monthly-savings">${Math.ceil(goal.required_monthly_savings).toLocaleString('ru-RU')} ${currencySymbols[goal.currency]}</span>
+                </div>
             </div>
-        `;
-        return;
+        `).join('');
+    } catch (error) {
+        console.error("Ошибка загрузки данных:", error);
+        goalsList.innerHTML = `<p class="text-red-500">Ошибка загрузки данных. Попробуйте позже.</p>`;
     }
-
-    goalsList.innerHTML = goals.map(goal => `
-        <div class="goal-card">
-            <h3>${goal.title}</h3>
-            <div class="goal-info">
-                <span>Цель до:</span>
-                <span>${new Date(goal.targetDate).toLocaleDateString('ru-RU')}</span>
-            </div>
-            <div class="goal-info">
-                <span>Необходимая сумма:</span>
-                <span>${goal.amount.toLocaleString('ru-RU')} ${currencySymbols[goal.currency]}</span>
-            </div>
-            <div class="goal-info">
-                <span>Ежемесячный взнос:</span>
-                <span class="monthly-savings">${Math.ceil(goal.requiredMonthlySavings).toLocaleString('ru-RU')} ${currencySymbols[goal.currency]}</span>
-            </div>
-        </div>
-    `).join('');
 }
+
 
 // Load Expenses
 function loadExpenses() {
@@ -406,3 +443,22 @@ function loadExpenses() {
         </div>
     `).join('');
 }
+
+
+// Helper function to get category name
+function getCategoryName(category) {
+    const categories = {
+        food: 'Еда',
+        transport: 'Транспорт',
+        entertainment: 'Развлечения',
+        shopping: 'Покупки',
+        health: 'Здоровье',
+        utilities: 'Коммунальные услуги',
+        other: 'Другое'
+    };
+    return categories[category] || category;
+}
+
+
+
+

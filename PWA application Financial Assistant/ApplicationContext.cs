@@ -8,6 +8,7 @@ namespace PWA_application_Financial_Assistant
     {
         public DbSet<Person> People { get; set; }
         public DbSet<Goals> Goals { get; set; }
+        public DbSet<Expenses> Expenses { get; set; }
 
         public ApplicationContext(DbContextOptions<ApplicationContext> options)
             : base(options)
@@ -33,6 +34,16 @@ namespace PWA_application_Financial_Assistant
         public decimal income { get; set; }
         public string currency { get; set; }
         public decimal required_monthly_savings { get; set; }
+    }
+
+    public class Expenses
+    {
+        public int id { get; set; }
+        public int personId { get; set; }
+        public string title { get; set; }
+        public DateTime date { get; set; }
+        public decimal amount { get; set; }
+        public string category { get; set; }
     }
 
 }
