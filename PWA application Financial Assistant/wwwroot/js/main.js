@@ -26,6 +26,12 @@ const expensesPage = document.getElementById('expensesPage');
 const statisticsPage = document.getElementById('statisticsPage');
 const closeMenuBtn = document.getElementById('closeMenuBtn');
 
+    // Навигация между страницами
+    const goalsLink = document.getElementById('goalsLink');
+    const expensesLink = document.getElementById('expensesLink');
+    const statisticsLink = document.getElementById('statisticsLink');
+
+
 // Currency symbols mapping
 const currencySymbols = {
     'RUB': '₽',
@@ -71,6 +77,24 @@ cancelGoalBtn.addEventListener('click', () => goalModal.classList.add('hidden'))
 cancelExpenseBtn.addEventListener('click', () => expenseModal.classList.add('hidden'));
 goalForm.addEventListener('submit', handleGoalSubmit);
 expenseForm.addEventListener('submit', handleExpenseSubmit);
+
+
+    // Навигация по страницам
+    goalsLink.addEventListener('click', () => {
+        showPage('goals');
+        toggleMenu();
+    });
+
+    expensesLink.addEventListener('click', () => {
+        showPage('expenses');
+        toggleMenu();
+    });
+
+    statisticsLink.addEventListener('click', () => {
+        showPage('statistics');
+        toggleMenu();
+    });
+
 
 // Auth handlers
 async function handleRegistration(e) {
@@ -148,6 +172,7 @@ async function handleLogin(e) {
 
 
 // Navigation functions
+    // Функция для переключения страниц
 function showPage(pageName) {
     currentPage = pageName;
     goalsPage.classList.add('hidden');
@@ -171,50 +196,93 @@ function showPage(pageName) {
 }
 
 // Load Statistics
-function loadStatistics() {
-    const goals = JSON.parse(localStorage.getItem('goals') || '[]');
-    const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+async function loadStatistics() {
+    try {
+        // Получение целей
+        const goalsResponse = await fetch('/api/goals', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`  // Если у тебя есть токен
+            }
+        });
 
-    if (goals.length === 0 && expenses.length === 0) {
+        // Проверка успешности ответа
+        if (!goalsResponse.ok) {
+            throw new Error(`Ошибка при загрузке целей: ${goalsResponse.statusText}`);
+        }
+
+        const goals = await goalsResponse.json();
+
+        // Получение расходов
+        const expensesResponse = await fetch('/api/expenses', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`  // Если у тебя есть токен
+            }
+        });
+
+        // Проверка успешности ответа
+        if (!expensesResponse.ok) {
+            throw new Error(`Ошибка при загрузке расходов: ${expensesResponse.statusText}`);
+        }
+
+        const expenses = await expensesResponse.json();
+
+        // Проверяем, есть ли данные
+        if (goals.length === 0 && expenses.length === 0) {
+            statisticsPage.innerHTML = `
+                <div class="bg-white rounded-lg shadow-lg p-6 text-center animate-fadeIn">
+                    <p class="text-lg text-gray-600 mb-4">
+                        У вас пока нет никакой статистики. Добавьте цели и расходы, чтобы увидеть статистику.
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        const totalGoals = goals.length;
+        const totalExpenses = expenses.length;
+        const totalGoalAmount = goals.reduce((sum, goal) => sum + goal.amount, 0);
+        const totalExpenseAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+        statisticsPage.innerHTML = `
+            <div class="statistics-card">
+                <h2 class="text-xl font-semibold mb-4">Общая статистика</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="stat-item">
+                        <span class="stat-label">Всего целей</span>
+                        <span class="stat-value">${totalGoals}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Всего расходов</span>
+                        <span class="stat-value">${totalExpenses}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Сумма целей</span>
+                        <span class="stat-value">${totalGoalAmount.toLocaleString('ru-RU')} ₽</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Сумма расходов</span>
+                        <span class="stat-value">${totalExpenseAmount.toLocaleString('ru-RU')} ₽</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        // Вывод ошибки в консоль
+        console.error('Ошибка при загрузке статистики:', error);
+
+        // Отображение ошибки пользователю
         statisticsPage.innerHTML = `
             <div class="bg-white rounded-lg shadow-lg p-6 text-center animate-fadeIn">
                 <p class="text-lg text-gray-600 mb-4">
-                    У вас пока нет никакой статистики. Добавьте цели и расходы, чтобы увидеть статистику.
+                    Произошла ошибка при загрузке статистики: ${error.message}. Попробуйте снова.
                 </p>
             </div>
         `;
-        return;
     }
-
-    const totalGoals = goals.length;
-    const totalExpenses = expenses.length;
-    const totalGoalAmount = goals.reduce((sum, goal) => sum + goal.amount, 0);
-    const totalExpenseAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-
-    statisticsPage.innerHTML = `
-        <div class="statistics-card">
-            <h2 class="text-xl font-semibold mb-4">Общая статистика</h2>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="stat-item">
-                    <span class="stat-label">Всего целей</span>
-                    <span class="stat-value">${totalGoals}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Всего расходов</span>
-                    <span class="stat-value">${totalExpenses}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Сумма целей</span>
-                    <span class="stat-value">${totalGoalAmount.toLocaleString('ru-RU')} ₽</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Сумма расходов</span>
-                    <span class="stat-value">${totalExpenseAmount.toLocaleString('ru-RU')} ₽</span>
-                </div>
-            </div>
-        </div>
-    `;
 }
+
 
 function toggleMenu() {
     const isOpen = sideNav.classList.contains('translate-x-0');
@@ -270,12 +338,17 @@ async function handleGoalSubmit(event) {
         return;
     }
 
-    // Calculate months until target
+    // Calculate remaining time until target date
     const today = new Date();
     const targetDateObj = new Date(target_date);
-    const monthsUntilTarget =
-        (targetDateObj.getFullYear() - today.getFullYear()) * 12 +
-        (targetDateObj.getMonth() - today.getMonth());
+
+    // Разница в днях
+    const daysUntilTarget = Math.max(1, Math.ceil((targetDateObj - today) / (1000 * 60 * 60 * 24)));
+
+    // Рассчитываем месяцы с учётом дней
+    const monthsUntilTarget = daysUntilTarget / 30.44; // Среднее количество дней в месяце
+
+    console.log(`Осталось дней: ${daysUntilTarget}, месяцев: ${monthsUntilTarget.toFixed(2)}`);
 
     // Calculate required monthly savings
     const required_monthly_savings = amount / monthsUntilTarget;
@@ -283,8 +356,10 @@ async function handleGoalSubmit(event) {
 
     if (required_monthly_savings > maxPossibleMonthlySavings) {
         alert('Внимание! С текущим доходом достижение цели к указанной дате может быть затруднительным. Рекомендуем увеличить срок или уменьшить целевую сумму.');
-        //return;
     }
+
+
+
 
     const goalData = {
         personId: parsedUserId, // Используем parsedUserId
@@ -350,27 +425,75 @@ function showModal() {
 
 
 // Handle Expense Submit
-function handleExpenseSubmit(e) {
+async function handleExpenseSubmit(e) {
     e.preventDefault();
 
-    const formData = new FormData(expenseForm);
-    const title = formData.get('title');
-    const amount = parseFloat(formData.get('amount'));
-    const category = formData.get('category');
-    const date = formData.get('date');
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        console.error("Ошибка: userId не найден в localStorage");
+        alert("Вы не авторизованы.");
+        return;
+    }
 
-    const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
-    expenses.push({
+    const parsedUserId = parseInt(userId, 10);
+    if (isNaN(parsedUserId)) {
+        console.error("Ошибка: userId не является числом");
+        alert("Ошибка: userId не является числом.");
+        return;
+    }
+
+    const title = document.querySelector('#expenseForm [name="title"]').value.trim();
+    const amount = parseFloat(document.querySelector('#expenseForm [name="amount"]').value);
+    const category = document.querySelector('[name="category"]').value.trim();
+    const date = document.querySelector('[name="date"]').value;
+
+    if (!title || isNaN(amount) || amount <= 0 || !category || !date) {
+        console.error("Некорректные данные формы");
+        alert("Все поля должны быть заполнены правильно.");
+        return;
+    }
+
+    const expenseData = {
+        personId: parsedUserId,
         title,
-        amount,
+        amount: parseFloat(amount),
         category,
-        date
-    });
+        date: new Date(date).toISOString(), // Преобразуем в ISO-формат
+    };
 
-    localStorage.setItem('expenses', JSON.stringify(expenses));
-    loadExpenses();
-    expenseModal.classList.add('hidden');
+    console.log("Отправляемые данные:", expenseData);
+
+    try {
+        const response = await fetch('https://localhost:7034/api/expenses', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+            },
+            body: JSON.stringify(expenseData)
+        });
+
+        console.log("Статус ответа:", response.status);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Ответ сервера:", errorData);
+            alert("Ошибка сервера: " + JSON.stringify(errorData));
+            return;
+        }
+
+        alert('Расход успешно добавлен!');
+        loadExpenses(); // Обновляем список расходов
+        expenseModal.classList.add('hidden'); // Закрываем модальное окно
+        expenseForm.reset();
+
+    } catch (error) {
+        console.error("Ошибка запроса:", error);
+        alert("Ошибка при сохранении расхода. Проверьте консоль.");
+    }
 }
+
+
 
 // Load Goals
 async function loadGoals() {
@@ -423,26 +546,60 @@ async function loadGoals() {
 
 
 // Load Expenses
-function loadExpenses() {
-    const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
-    expensesList.innerHTML = expenses.map(expense => `
-        <div class="expense-card">
-            <h3>${expense.title}</h3>
-            <div class="expense-info">
-                <span>Сумма:</span>
-                <span>${expense.amount.toLocaleString('ru-RU')} ₽</span>
+async function loadExpenses() {
+    try {
+        // Запрос к серверу для получения расходов
+        const response = await fetch('/api/expenses', {
+            headers: {
+                "Authorization": `Bearer ${localStorage.getItem("accessToken")}`  // Если используется авторизация
+            }
+        });
+
+        // Проверка успешности ответа
+        if (!response.ok) {
+            throw new Error(`Ошибка при загрузке расходов: ${response.statusText}`);
+        }
+
+        const expenses = await response.json();
+
+        // Проверка, есть ли расходы
+        if (expenses.length === 0) {
+            expensesList.innerHTML = `
+                <div class="bg-white rounded-lg shadow-lg p-6 text-center animate-fadeIn">
+                    <p class="text-lg text-gray-600 mb-4">У вас пока нет расходов.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Отображение расходов
+        expensesList.innerHTML = expenses.map(expense => `
+            <div class="expense-card">
+                <h3>${expense.title}</h3>
+                <div class="expense-info">
+                    <span>Сумма:</span>
+                    <span>${expense.amount.toLocaleString('ru-RU')} ₽</span>
+                </div>
+                <div class="expense-info">
+                    <span>Категория:</span>
+                    <span>${expense.category}</span>
+                </div>
+                <div class="expense-info">
+                    <span>Дата:</span>
+                    <span>${new Date(expense.date).toLocaleDateString('ru-RU')}</span>
+                </div>
             </div>
-            <div class="expense-info">
-                <span>Категория:</span>
-                <span>${expense.category}</span>
+        `).join('');
+    } catch (error) {
+        console.error('Ошибка при загрузке расходов:', error);
+        expensesList.innerHTML = `
+            <div class="bg-white rounded-lg shadow-lg p-6 text-center animate-fadeIn">
+                <p class="text-lg text-gray-600 mb-4">Произошла ошибка при загрузке расходов. Попробуйте снова.</p>
             </div>
-            <div class="expense-info">
-                <span>Дата:</span>
-                <span>${new Date(expense.date).toLocaleDateString('ru-RU')}</span>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }
 }
+
 
 
 // Helper function to get category name
@@ -458,7 +615,3 @@ function getCategoryName(category) {
     };
     return categories[category] || category;
 }
-
-
-
-

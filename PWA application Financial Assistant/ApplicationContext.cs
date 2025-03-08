@@ -39,7 +39,7 @@ namespace PWA_application_Financial_Assistant
     public class Expenses
     {
         public int id { get; set; }
-        public int personId { get; set; }
+        public int personid { get; set; }
         public string title { get; set; }
         public DateTime date { get; set; }
         public decimal amount { get; set; }

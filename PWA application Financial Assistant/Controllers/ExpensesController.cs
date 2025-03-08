@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace PWA_application_Financial_Assistant.Controllers
@@ -45,7 +46,7 @@ namespace PWA_application_Financial_Assistant.Controllers
                 return Unauthorized(new { message = "Не удалось получить идентификатор пользователя." });
             }
 
-            expenses.personId = userId.Value;
+            expenses.personid = userId.Value;
 
             // Конвертация Date в UTC
             if (expenses.date != default)
@@ -69,10 +70,50 @@ namespace PWA_application_Financial_Assistant.Controllers
             }
         }
 
+        // GET: api/expenses/{id}
+        [HttpGet("{id}")]
+        [Authorize]
+        public async Task<IActionResult> GetExpense(int id)
+        {
+            var userId = GetUserIdFromToken(HttpContext);
+            if (userId == null)
+            {
+                _logger.LogError("Ошибка авторизации: userId не найден.");
+                return Unauthorized(new { message = "Не удалось получить идентификатор пользователя." });
+            }
+
+            var expense = await _context.Expenses
+                .Where(g => g.personid == userId.Value && g.id == id)
+                .FirstOrDefaultAsync();
+
+            if (expense == null)
+            {
+                _logger.LogWarning("Цель с id {Id} не найдена для userId {UserId}.", id, userId.Value);
+                return NotFound(new { message = "Цель не найдена." });
+            }
+
+            return Ok(expense);
+        }
+
+        // GET: api/expenses
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetExpenses()
+        {
+            var userId = GetUserIdFromToken(HttpContext);
+            if (userId == null)
+            {
+                _logger.LogError("Ошибка авторизации: userId не найден.");
+                return Unauthorized(new { message = "Не удалось получить идентификатор пользователя." });
+            }
+
+            var expenses = await _context.Expenses.Where(e => e.personid == userId.Value).ToListAsync();
+
+            return Ok(expenses);
+        }
 
 
-
-        // Метод для извлечения userId из токена
+        // метод для извлечения userId из токена
         private int? GetUserIdFromToken(HttpContext httpContext)
         {
             var claim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);

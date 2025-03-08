@@ -31,6 +31,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddControllersWithViews();
 
+// Добавляем политику CORS для разрешения запросов с определенного источника
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigin",
+        builder => builder.WithOrigins("http://localhost:7034")  // Укажите адрес вашего фронтенда
+                          .AllowAnyMethod()
+                          .AllowAnyHeader());
+});
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -45,8 +54,15 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+// Применяем политику CORS, до UseAuthentication()
+app.UseCors("AllowSpecificOrigin");  // Применяем политику CORS
+
 app.UseAuthentication();
 app.UseAuthorization();
+
+
+builder.Logging.AddConsole();
+
 
 static string HashPassword(string password)
 {
@@ -125,14 +141,21 @@ app.MapPost("/login", async (Person loginData, ApplicationContext db) =>
     });
 });
 
-// Пример защищённого роута
-app.Map("/data", [Authorize] (HttpContext context) => $"Hello, {context.User.Identity.Name}!");
-
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        builder => builder.WithOrigins("http://localhost:5173") // Укажи порт своего фронта
+                          .AllowAnyMethod()
+                          .AllowAnyHeader());
+});
+
+app.UseCors("AllowFrontend");  // Включаем CORS только для фронтенда
 
 public class AuthOptions
 {
