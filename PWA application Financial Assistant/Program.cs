@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PWA_application_Financial_Assistant;
@@ -9,11 +10,22 @@ using System.Security.Cryptography;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Logging.AddConsole();
+
 
 builder.Services.AddDbContext<ApplicationContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddAuthorization();
+// Добавление политики CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", builder =>
+        builder.WithOrigins("http://localhost:50451") // Разрешаем фронтенд с этого адреса
+               .AllowAnyMethod()
+               .AllowAnyHeader()
+               .AllowCredentials());
+});
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -28,19 +40,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
         };
     });
+builder.Services.AddAuthorization();
+
 
 builder.Services.AddControllersWithViews();
 
-// Добавляем политику CORS для разрешения запросов с определенного источника
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowSpecificOrigin",
-        builder => builder.WithOrigins("http://localhost:7034")  // Укажите адрес вашего фронтенда
-                          .AllowAnyMethod()
-                          .AllowAnyHeader());
-});
-
 var app = builder.Build();
+
+// Применяем CORS в пайплайне
+app.UseCors("AllowFrontend"); // Применяем CORS политику для фронтенда
 
 if (!app.Environment.IsDevelopment())
 {
@@ -54,24 +62,11 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// Применяем политику CORS, до UseAuthentication()
-app.UseCors("AllowSpecificOrigin");  // Применяем политику CORS
-
+// Применяем аутентификацию и авторизацию после CORS
 app.UseAuthentication();
 app.UseAuthorization();
 
 
-builder.Logging.AddConsole();
-
-
-static string HashPassword(string password)
-{
-    using (var sha256 = SHA256.Create())
-    {
-        var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-        return Convert.ToBase64String(bytes);
-    }
-}
 
 // Роут для регистрации
 app.MapPost("/register", async (Person registerData, ApplicationContext db) =>
@@ -109,58 +104,100 @@ app.MapPost("/login", async (Person loginData, ApplicationContext db) =>
         return Results.BadRequest(new { message = "Email и пароль не могут быть пустыми." });
     }
 
-    var hashedPassword = HashPassword(loginData.password);
-
-    var person = await db.People.FirstOrDefaultAsync(p => p.email == loginData.email && p.password == hashedPassword);
-
-    if (person is null)
+    var person = await db.People.FirstOrDefaultAsync(p => p.email == loginData.email);
+    if (person == null)
     {
-        return Results.Unauthorized();
+        return Results.Unauthorized(); // Пользователь с таким email не найден
     }
 
+    // Сравниваем захешированный пароль
+    var hashedPassword = HashPassword(loginData.password);
+    if (person.password != hashedPassword)
+    {
+        return Results.Unauthorized(); // Пароль не совпадает
+    }
+
+    // Создаем токен
     var claims = new List<Claim>
     {
-        new Claim(ClaimTypes.NameIdentifier, person.personId.ToString()), // Добавляем userId в токен
-        new Claim(ClaimTypes.Name, person.email)
+        new Claim(ClaimTypes.NameIdentifier, person.personId.ToString()), // Уникальный userId
+        new Claim(ClaimTypes.Name, person.email) // Email или другие уникальные данные
     };
 
+    var jwt = GenerateJwtToken(claims); // Генерация уникального токена
+
+    // Отправляем токен в ответе
+    return Results.Json(new
+    {
+        access_token = jwt,
+        username = person.email,
+        userId = person.personId
+    });
+
+
+});
+
+
+
+// метод для генерации jwt токена
+static string GenerateJwtToken(List<Claim> claims)
+{
     var jwt = new JwtSecurityToken(
         issuer: AuthOptions.ISSUER,
         audience: AuthOptions.AUDIENCE,
-        claims: claims,
-        expires: DateTime.UtcNow.AddMinutes(60),
-        signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
+        claims: claims, // Claims с уникальной информацией для каждого пользователя
+        expires: DateTime.UtcNow.AddMinutes(60), // Токен истечет через 60 минут
+        signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256)
+    );
 
-    var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
+    return new JwtSecurityTokenHandler().WriteToken(jwt); // Генерируем токен с уникальными данными
+}
 
-    return Results.Json(new
-    {
-        access_token = encodedJwt,
-        username = person.email,
-        userId = person.personId // Добавляем userId в ответ
-    });
-});
+
+
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.Run();
-
-builder.Services.AddCors(options =>
+app.MapGet("/check-session", (HttpContext context, ILogger<Program> logger) =>
 {
-    options.AddPolicy("AllowFrontend",
-        builder => builder.WithOrigins("http://localhost:5173") // Укажи порт своего фронта
-                          .AllowAnyMethod()
-                          .AllowAnyHeader());
+    var user = context.User;
+    logger.LogInformation("Проверка сессии для пользователя: {Username}", user.Identity?.Name);
+
+    if (user.Identity?.IsAuthenticated == true)
+    {
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var username = user.FindFirst(ClaimTypes.Name)?.Value;
+
+        logger.LogInformation("Пользователь: {Username} с userId: {UserId}", username, userId);
+
+        return Results.Json(new { userId, username });
+    }
+
+    logger.LogWarning("Пользователь не авторизован.");
+    return Results.Unauthorized();
 });
 
-app.UseCors("AllowFrontend");  // Включаем CORS только для фронтенда
+app.Run();
+
+
+// Метод для хэширования пароля
+static string HashPassword(string password)
+{
+    using (var sha256 = SHA256.Create())
+    {
+        var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+        return Convert.ToBase64String(bytes);
+    }
+}
+
+
 
 public class AuthOptions
 {
     public const string ISSUER = "FinancialServer";
     public const string AUDIENCE = "FinancialClient";
-    const string KEY = "mysupersecret_secretsecretsecretkey!123";
+    const string KEY = "mysupersecret_secretsecretsecretkey!123"; // Секретный ключ для подписи токенов
     public static SymmetricSecurityKey GetSymmetricSecurityKey() => new SymmetricSecurityKey(Encoding.UTF8.GetBytes(KEY));
 }

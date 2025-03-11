@@ -1,9 +1,10 @@
 // DOM Elements
 const registrationForm = document.getElementById('registrationForm');
 const loginForm = document.getElementById('loginForm');
+const loginAuthForm = document.getElementById('loginAuthForm');
 const dashboard = document.getElementById('dashboard');
 const authForm = document.getElementById('authForm');
-const loginAuthForm = document.getElementById('loginAuthForm');
+
 const showLoginBtn = document.getElementById('showLoginBtn');
 const showRegisterBtn = document.getElementById('showRegisterBtn');
 const menuBtn = document.getElementById('menuBtn');
@@ -31,6 +32,71 @@ const closeMenuBtn = document.getElementById('closeMenuBtn');
     const expensesLink = document.getElementById('expensesLink');
     const statisticsLink = document.getElementById('statisticsLink');
 
+// Navigation state
+let currentPage = 'statistics';
+
+document.addEventListener("DOMContentLoaded", async function () {
+    const accessToken = localStorage.getItem("accessToken");
+    console.log("Токен доступа:", accessToken);  // Логируем значение токена
+
+    if (accessToken) {
+        try {
+            const response = await fetch('/check-session', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}` // Используем accessToken из localStorage
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log("Сессия активна:", data);
+
+                // Логика отображения интерфейса для авторизованного пользователя
+                loginForm.classList.add('hidden'); // Скрываем форму входа
+                registrationForm.classList.add('hidden'); // Скрываем форму регистрации
+                dashboard.classList.remove('hidden'); // Показываем дашборд
+
+                // Загружаем данные пользователя (например, цели и расходы)
+                loadGoals();
+                loadExpenses();
+                loadStatistics();
+
+                // Показываем страницу по умолчанию (например, статистику)
+                showPage('statistics');
+            } else {
+                console.log("Сессия недействительна. Код ответа:", response.status);
+                const errorDetails = await response.text();  // Получаем текст ошибки
+                console.error("Детали ошибки:", errorDetails);
+
+                // Очищаем localStorage и перенаправляем на страницу входа
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('userId');
+                loginForm.classList.remove('hidden');
+                registrationForm.classList.add('hidden');
+                dashboard.classList.add('hidden');
+            }
+        } catch (error) {
+            console.error("Ошибка при проверке сессии:", error);
+
+            // Очищаем localStorage и перенаправляем на страницу входа
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('userId');
+            loginForm.classList.remove('hidden');
+            registrationForm.classList.add('hidden');
+            dashboard.classList.add('hidden');
+        }
+    } else {
+        // Если токена нет, показываем форму входа
+        loginForm.classList.remove('hidden');
+        registrationForm.classList.add('hidden');
+        dashboard.classList.add('hidden');
+    }
+});
+
+
+
+
 
 // Currency symbols mapping
 const currencySymbols = {
@@ -43,8 +109,7 @@ const currencySymbols = {
     'CHF': '₣'
 };
 
-// Navigation state
-let currentPage = 'statistics';
+
 
 // Event Listeners for auth forms
 showLoginBtn.addEventListener('click', () => {
@@ -77,6 +142,9 @@ cancelGoalBtn.addEventListener('click', () => goalModal.classList.add('hidden'))
 cancelExpenseBtn.addEventListener('click', () => expenseModal.classList.add('hidden'));
 goalForm.addEventListener('submit', handleGoalSubmit);
 expenseForm.addEventListener('submit', handleExpenseSubmit);
+
+
+
 
 
     // Навигация по страницам
@@ -297,10 +365,8 @@ function toggleMenu() {
 
 // Handle Logout
 function handleLogout() {
-    localStorage.removeItem('jwt');
-    localStorage.removeItem('username');
-    localStorage.removeItem('goals');
-    localStorage.removeItem('expenses');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('userId');
     dashboard.classList.add('hidden');
     registrationForm.classList.remove('hidden');
     loginForm.classList.add('hidden');
