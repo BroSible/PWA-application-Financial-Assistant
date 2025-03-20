@@ -41,7 +41,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
-
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddControllersWithViews();
 
@@ -71,14 +72,18 @@ app.UseAuthorization();
 // Роут для регистрации
 app.MapPost("/register", async (Person registerData, ApplicationContext db) =>
 {
+    Console.WriteLine($"Пришла регистрация: {registerData.email}");
+
     if (string.IsNullOrWhiteSpace(registerData.email) || string.IsNullOrWhiteSpace(registerData.password))
     {
+        Console.WriteLine("Ошибка: пустые email или пароль.");
         return Results.BadRequest(new { message = "Email и пароль не могут быть пустыми." });
     }
 
     var existingUser = await db.People.FirstOrDefaultAsync(p => p.email == registerData.email);
     if (existingUser != null)
     {
+        Console.WriteLine("Ошибка: пользователь уже существует.");
         return Results.BadRequest(new { message = "Пользователь с таким email уже существует." });
     }
 
@@ -93,8 +98,10 @@ app.MapPost("/register", async (Person registerData, ApplicationContext db) =>
     db.People.Add(newPerson);
     await db.SaveChangesAsync();
 
+    Console.WriteLine("Регистрация успешна!");
     return Results.Ok(new { message = "Регистрация успешна." });
 });
+
 
 // Роут для логина
 app.MapPost("/login", async (Person loginData, ApplicationContext db) =>

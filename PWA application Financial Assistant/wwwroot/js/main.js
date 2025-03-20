@@ -167,8 +167,13 @@ expenseForm.addEventListener('submit', handleExpenseSubmit);
 // Auth handlers
 async function handleRegistration(e) {
     e.preventDefault();
-    const email = document.getElementById('RegistrationEmail').value;
-    const password = document.getElementById('RegistrationPassword').value;
+    const email = document.getElementById('RegistrationEmail').value.trim();
+    const password = document.getElementById('RegistrationPassword').value.trim();
+
+    if (!email || !password) {
+        alert('Заполните все поля.');
+        return;
+    }
 
     try {
         const response = await fetch('/register', {
@@ -179,19 +184,30 @@ async function handleRegistration(e) {
             body: JSON.stringify({ email, password })
         });
 
-        if (response.ok) {
-            alert('Вы успешно зарегистрированы!');
-            registrationForm.classList.add('hidden');
-            loginForm.classList.remove('hidden');
+        // Проверяем, есть ли в ответе JSON
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('Вы успешно зарегистрированы!');
+                document.getElementById('registrationForm').classList.add('hidden');
+                document.getElementById('loginForm').classList.remove('hidden');
+            } else {
+                alert(`Ошибка регистрации: ${data.message || "Неизвестная ошибка"}`);
+            }
         } else {
-            const error = await response.json();
-            alert(`Ошибка регистрации: ${error.message}`);
+            // Если ответ не JSON, выводим его текст
+            const errorText = await response.text();
+            console.error("Ошибка регистрации: ", errorText);
+            alert(`Ошибка регистрации: Сервер вернул неожиданный ответ.`);
         }
     } catch (err) {
         console.error('Ошибка регистрации:', err);
         alert('Произошла ошибка при регистрации.');
     }
 }
+
 
 
 async function handleLogin(e) {
