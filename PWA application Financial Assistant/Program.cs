@@ -17,14 +17,14 @@ builder.Services.AddDbContext<ApplicationContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Добавление политики CORS
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", builder =>
-        builder.WithOrigins("http://localhost:50451") // Разрешаем фронтенд с этого адреса
-               .AllowAnyMethod()
-               .AllowAnyHeader()
-               .AllowCredentials());
-});
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowFrontend", builder =>
+//        builder.WithOrigins("http://localhost:7034") // Разрешаем фронтенд с этого адреса
+//               .AllowAnyMethod()
+//               .AllowAnyHeader()
+//               .AllowCredentials());
+//});
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
