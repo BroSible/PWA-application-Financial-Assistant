@@ -9,6 +9,7 @@ namespace PWA_application_Financial_Assistant
         public DbSet<Person> People { get; set; }
         public DbSet<Goals> Goals { get; set; }
         public DbSet<Expenses> Expenses { get; set; }
+        public DbSet<UserProfile> UserProfiles { get; set; }
 
         public ApplicationContext(DbContextOptions<ApplicationContext> options)
             : base(options)
@@ -45,7 +46,19 @@ namespace PWA_application_Financial_Assistant
         public decimal amount { get; set; }
         public string category { get; set; }
     }
+    public class UserProfile
+    {
+        public int id { get; set; }
+        public int personId { get; set; }
 
+        public string? username { get; set; }
+        public string? bio { get; set; }
+        public string? avatar_path { get; set; }
+        public DateTime? birthdate { get; set; }
+
+        public DateTime? created_at { get; set; }
+        public DateTime? updated_at { get; set; }
+    }
 
 
 }

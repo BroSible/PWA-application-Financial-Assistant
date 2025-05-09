@@ -5,6 +5,15 @@ const loginAuthForm = document.getElementById('loginAuthForm');
 const dashboard = document.getElementById('dashboard');
 const authForm = document.getElementById('authForm');
 
+const avatarImage = document.getElementById('avatarImage');
+const avatarInput = document.getElementById('avatarInput');
+const uploadAvatarBtn = document.getElementById('uploadAvatarBtn');
+
+const profileUsername = document.getElementById('profileUsername');
+const profileBio = document.getElementById('profileBio');
+const profileBirthdate = document.getElementById('profileBirthdate');
+const saveProfileBtn = document.getElementById('saveProfileBtn');
+
 const showLoginBtn = document.getElementById('showLoginBtn');
 const showRegisterBtn = document.getElementById('showRegisterBtn');
 const menuBtn = document.getElementById('menuBtn');
@@ -27,14 +36,6 @@ const expensesPage = document.getElementById('expensesPage');
 const statisticsPage = document.getElementById('statisticsPage');
 const closeMenuBtn = document.getElementById('closeMenuBtn');
 
-const avatarImage = document.getElementById('avatarImage');
-const avatarInput = document.getElementById('avatarInput');
-const uploadAvatarBtn = document.getElementById('uploadAvatarBtn');
-
-const profilePage = document.getElementById('profilePage');
-const profileLink = document.getElementById('profileLink');
-const profileInfo = document.getElementById('profileInfo');
-const editProfileBtn = document.getElementById('editProfileBtn');
 
     // Навигация между страницами
     const goalsLink = document.getElementById('goalsLink');
@@ -824,3 +825,80 @@ async function deleteExpense(id) {
         alert("Ошибка при удалении расхода.");
     }
 }
+
+async function loadUserProfile() {
+    try {
+        const response = await fetch('/api/UserProfile/me', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
+            }
+        });
+
+        if (!response.ok) throw new Error("Ошибка загрузки профиля");
+
+        const profile = await response.json();
+
+        avatarImage.src = profile.avatar_path || 'default-avatar.png';
+        profileUsername.value = profile.username || '';
+        profileBio.value = profile.bio || '';
+        profileBirthdate.value = profile.birthdate ? profile.birthdate.slice(0, 10) : null;
+
+    } catch (err) {
+        console.error('Ошибка загрузки профиля:', err);
+        alert('Ошибка при загрузке профиля');
+    }
+}
+
+saveProfileBtn.addEventListener('click', async () => {
+    const body = {
+        username: profileUsername.value.trim(),
+        bio: profileBio.value.trim(),
+        birthdate: profileBirthdate.value || null
+    };
+
+    try {
+        const response = await fetch('/api/UserProfile/me', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) throw new Error("Ошибка сохранения");
+
+        alert('Профиль обновлён!');
+        await loadUserProfile();
+    } catch (err) {
+        console.error('Ошибка при обновлении профиля:', err);
+        alert('Ошибка при обновлении профиля');
+    }
+});
+
+uploadAvatarBtn.addEventListener('click', async () => {
+    const file = avatarInput.files[0];
+    if (!file) return alert("Выберите файл.");
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const response = await fetch('/api/UserProfile/avatar', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
+            },
+            body: formData
+        });
+
+        if (!response.ok) throw new Error("Ошибка загрузки");
+
+        const data = await response.json();
+        avatarImage.src = data.avatarUrl;
+        alert('Фото обновлено!');
+    } catch (err) {
+        console.error("Ошибка при загрузке аватара:", err);
+        alert("Ошибка загрузки изображения");
+    }
+});
