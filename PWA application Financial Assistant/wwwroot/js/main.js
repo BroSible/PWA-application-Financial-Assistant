@@ -279,50 +279,25 @@ function showPage(pageName) {
     }
 }
 
-// Load Statistics
 async function loadStatistics() {
     try {
-        // Получение целей
-        const goalsResponse = await fetch('/api/goals', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`  // Если у тебя есть токен
-            }
-        });
+        const [goalsResponse, expensesResponse] = await Promise.all([
+            fetch('/api/goals', {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
+            }),
+            fetch('/api/expenses', {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
+            })
+        ]);
 
-        // Проверка успешности ответа
-        if (!goalsResponse.ok) {
-            throw new Error(`Ошибка при загрузке целей: ${goalsResponse.statusText}`);
+        if (!goalsResponse.ok || !expensesResponse.ok) {
+            throw new Error("Ошибка при загрузке данных");
         }
 
         const goals = await goalsResponse.json();
-
-        // Получение расходов
-        const expensesResponse = await fetch('/api/expenses', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`  // Если у тебя есть токен
-            }
-        });
-
-        // Проверка успешности ответа
-        if (!expensesResponse.ok) {
-            throw new Error(`Ошибка при загрузке расходов: ${expensesResponse.statusText}`);
-        }
-
         const expenses = await expensesResponse.json();
-
-        // Проверяем, есть ли данные
-        if (goals.length === 0 && expenses.length === 0) {
-            statisticsPage.innerHTML = `
-                <div class="bg-white rounded-lg shadow-lg p-6 text-center animate-fadeIn">
-                    <p class="text-lg text-gray-600 mb-4">
-                        У вас пока нет никакой статистики. Добавьте цели и расходы, чтобы увидеть статистику.
-                    </p>
-                </div>
-            `;
-            return;
-        }
 
         const totalGoals = goals.length;
         const totalExpenses = expenses.length;
@@ -332,7 +307,7 @@ async function loadStatistics() {
         statisticsPage.innerHTML = `
             <div class="statistics-card">
                 <h2 class="text-xl font-semibold mb-4">Общая статистика</h2>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-4 mb-6">
                     <div class="stat-item">
                         <span class="stat-label">Всего целей</span>
                         <span class="stat-value">${totalGoals}</span>
@@ -350,22 +325,109 @@ async function loadStatistics() {
                         <span class="stat-value">${totalExpenseAmount.toLocaleString('ru-RU')} ₽</span>
                     </div>
                 </div>
+                <div class="flex flex-col items-center justify-center gap-6">
+                    <canvas id="goalsChart" class="max-w-2xl w-full"></canvas>
+                    <canvas id="expensesChart" class="max-w-2xl w-full"></canvas>
+                </div>
             </div>
         `;
-    } catch (error) {
-        // Вывод ошибки в консоль
-        console.error('Ошибка при загрузке статистики:', error);
 
-        // Отображение ошибки пользователю
+        
+        if (goals.length > 0) {
+            const goalTitles = goals.map(goal => goal.title);
+            const goalAmounts = goals.map(goal => goal.amount);
+
+            new Chart(document.getElementById('goalsChart'), {
+                type: 'bar',
+                data: {
+                    labels: goalTitles,
+                    datasets: [{
+                        label: 'Цели (₽)',
+                        data: goalAmounts,
+                        backgroundColor: '#60a5fa'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Цели по суммам' }
+                    }
+                }
+            });
+        }
+
+        
+        const categoryTranslations = {
+            food: 'Еда',
+            transport: 'Транспорт',
+            housing: 'Жильё',
+            entertainment: 'Развлечения',
+            health: 'Здоровье',
+            education: 'Образование',
+            other: 'Другое',
+            utilities: 'Коммунальные услуги'
+
+        };
+
+        
+        const categories = {};
+        expenses.forEach(e => {
+            const engCategory = e.category || 'other';
+            const rusCategory = categoryTranslations[engCategory] || engCategory;
+            categories[rusCategory] = (categories[rusCategory] || 0) + e.amount;
+        });
+
+        
+        const colorMap = {
+            'Еда': '#f87171',
+            'Транспорт': '#60a5fa',
+            'Жильё': '#34d399',
+            'Развлечения': '#fbbf24',
+            'Здоровье': '#a78bfa',
+            'Образование': '#fb923c',
+            'Другое': '#94a3b8'
+        };
+
+        if (expenses.length > 0) {
+            const categoryLabels = Object.keys(categories);
+            const categoryAmounts = Object.values(categories);
+            const categoryColors = categoryLabels.map(label => colorMap[label] || '#ccc');
+
+            
+            new Chart(document.getElementById('expensesChart'), {
+                type: 'pie',
+                data: {
+                    labels: categoryLabels,
+                    datasets: [{
+                        label: 'Сумма расходов (₽)',
+                        data: categoryAmounts,
+                        backgroundColor: categoryColors
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: true, position: 'bottom' },
+                        title: { display: true, text: 'Категории расходов (₽)' }
+                    }
+                }
+            });
+        }
+
+    } catch (error) {
+        console.error('Ошибка при загрузке статистики:', error);
         statisticsPage.innerHTML = `
-            <div class="bg-white rounded-lg shadow-lg p-6 text-center animate-fadeIn">
+            <div class="bg-white rounded-lg shadow-lg p-6 text-center">
                 <p class="text-lg text-gray-600 mb-4">
-                    Произошла ошибка при загрузке статистики: ${error.message}. Попробуйте снова.
+                    Произошла ошибка при загрузке статистики: ${error.message}
                 </p>
             </div>
         `;
     }
 }
+
+
 
 
 function toggleMenu() {
@@ -486,10 +548,6 @@ async function handleGoalSubmit(event) {
         alert("Ошибка при сохранении цели. Проверьте консоль.");
     }
 }
-
-
-
-
 
 // Функция для скрытия модального окна (если нужно)
 function hideModal() {

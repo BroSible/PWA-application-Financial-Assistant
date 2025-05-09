@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Финансовый помощник</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -118,7 +119,8 @@
         <main class="pt-24 p-4 max-w-md mx-auto">
             <!-- Statistics Page -->
             <div id="statisticsPage" class="space-y-4">
-                <!-- Statistics will be inserted here -->
+                <canvas id="expensesChart" width="400" height="200"></canvas>
+                <canvas id="goalsChart" width="400" height="200"></canvas>
             </div>
 
             <!-- Goals Page -->
