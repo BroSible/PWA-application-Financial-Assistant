@@ -10,9 +10,6 @@ namespace PWA_application_Financial_Assistant
         public DbSet<Goals> Goals { get; set; }
         public DbSet<Expenses> Expenses { get; set; }
 
-        public DbSet<User> Users { get; set; }
-
-
         public ApplicationContext(DbContextOptions<ApplicationContext> options)
             : base(options)
         {
