@@ -27,6 +27,15 @@ const expensesPage = document.getElementById('expensesPage');
 const statisticsPage = document.getElementById('statisticsPage');
 const closeMenuBtn = document.getElementById('closeMenuBtn');
 
+const avatarImage = document.getElementById('avatarImage');
+const avatarInput = document.getElementById('avatarInput');
+const uploadAvatarBtn = document.getElementById('uploadAvatarBtn');
+
+const profilePage = document.getElementById('profilePage');
+const profileLink = document.getElementById('profileLink');
+const profileInfo = document.getElementById('profileInfo');
+const editProfileBtn = document.getElementById('editProfileBtn');
+
     // Навигация между страницами
     const goalsLink = document.getElementById('goalsLink');
     const expensesLink = document.getElementById('expensesLink');
@@ -162,6 +171,12 @@ expenseForm.addEventListener('submit', handleExpenseSubmit);
         showPage('statistics');
         toggleMenu();
     });
+    profileLink.addEventListener('click', () => {
+    showPage('profile');
+    toggleMenu();
+    });
+
+
 
 
 // Auth handlers
@@ -275,6 +290,10 @@ function showPage(pageName) {
         case 'statistics':
             statisticsPage.classList.remove('hidden');
             loadStatistics();
+            break;
+        case 'profile': // ← ДОБАВЬ ЭТО
+            profilePage.classList.remove('hidden');
+            loadUserProfile();
             break;
     }
 }
@@ -805,3 +824,56 @@ async function deleteExpense(id) {
         alert("Ошибка при удалении расхода.");
     }
 }
+
+async function loadUserProfile() {
+    try {
+        const response = await fetch('/api/users/me', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
+            }
+        });
+
+        if (!response.ok) throw new Error("Ошибка загрузки профиля");
+
+        const user = await response.json();
+
+        profileInfo.innerHTML = `
+            <p><strong>Email:</strong> ${user.email}</p>
+            <p><strong>Имя:</strong> ${user.username || 'Не указано'}</p>
+            <p><strong>Дата регистрации:</strong> ${new Date(user.createdAt).toLocaleDateString('ru-RU')}</p>
+        `;
+    } catch (error) {
+        console.error("Ошибка загрузки профиля:", error);
+        profileInfo.innerHTML = `<p class="text-red-500">Не удалось загрузить данные профиля.</p>`;
+    }
+}
+
+uploadAvatarBtn.addEventListener('click', async () => {
+    const file = avatarInput.files[0];
+    if (!file) {
+        alert("Выберите файл.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const response = await fetch('/api/users/me/avatar', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
+            },
+            body: formData
+        });
+
+        if (!response.ok) throw new Error("Ошибка загрузки");
+
+        const data = await response.json();
+        avatarImage.src = data.avatarUrl;
+        alert("Аватар успешно обновлён!");
+    } catch (err) {
+        console.error(err);
+        alert("Ошибка при загрузке аватара.");
+    }
+});
