@@ -271,6 +271,25 @@
                 </div>
             </div>
 
+            <!-- Top-Up Modal -->
+            <div id="topUpModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+                <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                    <h2 class="text-xl font-semibold mb-4">Пополнить цель</h2>
+                    <form id="topUpForm" class="space-y-4">
+                        <input type="hidden" id="topUpGoalId">
+                        <div>
+                            <label for="topUpAmount" class="block text-sm font-medium text-gray-700">Сумма пополнения</label>
+                            <input type="number" id="topUpAmount" min="1" required class="w-full h-10 rounded-md border px-3 py-2">
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button type="button" id="cancelTopUpBtn" class="px-4 py-2 border rounded-md hover:bg-gray-50">Отмена</button>
+                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Пополнить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+
             <!-- Expense Modal -->
             <div id="expenseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
                 <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">

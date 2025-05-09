@@ -72,6 +72,52 @@ namespace PWA_application_Financial_Assistant.Controllers
             }
         }
 
+        // PATCH: api/goals/{id}/topup
+        [HttpPatch("{id}/topup")]
+        [Authorize]
+        public async Task<IActionResult> TopUpGoal(int id, [FromBody] TopUpRequest request)
+        {
+            if (request.Amount <= 0)
+            {
+                _logger.LogWarning("Сумма пополнения должна быть больше 0.");
+                return BadRequest(new { message = "Сумма должна быть больше нуля." });
+            }
+
+            var userId = GetUserIdFromToken(HttpContext);
+            if (userId == null)
+            {
+                _logger.LogWarning("Ошибка авторизации: userId не найден.");
+                return Unauthorized(new { message = "Не удалось получить идентификатор пользователя." });
+            }
+
+            var goal = await _context.Goals.FirstOrDefaultAsync(g => g.id == id && g.personId == userId.Value);
+            if (goal == null)
+            {
+                _logger.LogWarning("Цель с id {Id} не найдена для userId {UserId}.", id, userId.Value);
+                return NotFound(new { message = "Цель не найдена." });
+            }
+
+            goal.saved += request.Amount;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Цель с id {Id} пополнена на {Amount} пользователем {UserId}.", id, request.Amount, userId.Value);
+                return Ok(goal);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при пополнении цели.");
+                return StatusCode(500, new { message = "Ошибка при пополнении цели." });
+            }
+        }
+
+        public class TopUpRequest
+        {
+            public decimal Amount { get; set; }
+        }
+
+
 
         // GET: api/goals/{id}
         [HttpGet("{id}")]

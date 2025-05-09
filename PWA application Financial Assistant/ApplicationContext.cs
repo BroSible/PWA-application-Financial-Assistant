@@ -16,6 +16,11 @@ namespace PWA_application_Financial_Assistant
         {
             Database.EnsureCreated();
         }
+
+        public class TopUpRequest
+        {
+            public decimal Amount { get; set; }
+        }
     }
 
     public class Person
@@ -35,6 +40,8 @@ namespace PWA_application_Financial_Assistant
         public decimal income { get; set; }
         public string currency { get; set; }
         public decimal required_monthly_savings { get; set; }
+        public decimal saved { get; set; } = 0;
+
     }
 
     public class Expenses

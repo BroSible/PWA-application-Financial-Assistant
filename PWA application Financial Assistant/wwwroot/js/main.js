@@ -49,6 +49,12 @@ const cancelEditBtn = document.getElementById('cancelEditBtn');
 
 const avatarUploadControls = document.getElementById('avatarUploadControls');
 
+const topUpModal = document.getElementById('topUpModal');
+const topUpForm = document.getElementById('topUpForm');
+const topUpGoalId = document.getElementById('topUpGoalId');
+const topUpAmount = document.getElementById('topUpAmount');
+const cancelTopUpBtn = document.getElementById('cancelTopUpBtn');
+
 
 
     // Навигация между страницами
@@ -316,7 +322,6 @@ function showPage(pageName) {
             break;
     }
 }
-ы
 
 async function loadStatistics() {
     try {
@@ -700,24 +705,27 @@ async function loadGoals() {
             return;
         }
 
-        goalsList.innerHTML = goals.map(goal => `
-    <div class="goal-card">
-        <h3>${goal.title}</h3>
-        <div class="goal-info">
-            <span>Цель до:</span>
-            <span>${new Date(goal.target_date).toLocaleDateString('ru-RU')}</span>
+        goalsList.innerHTML = goals.map(goal => {
+            const saved = goal.saved || 0;
+            const progress = Math.min((saved / goal.amount) * 100, 100).toFixed(1);
+            return `
+        <div class="goal-card bg-white rounded-lg shadow p-4 space-y-2">
+            <h3 class="text-lg font-bold">${goal.title}</h3>
+            <div>Цель до: <strong>${new Date(goal.target_date).toLocaleDateString('ru-RU')}</strong></div>
+            <div>Необходимо: ${goal.amount.toLocaleString('ru-RU')} ${currencySymbols[goal.currency]}</div>
+            <div>Накоплено: ${saved.toLocaleString('ru-RU')} ${currencySymbols[goal.currency]}</div>
+
+            <div class="w-full bg-gray-200 rounded h-4">
+                <div class="bg-blue-600 h-4 rounded" style="width: ${progress}%"></div>
+            </div>
+            <div class="text-sm text-gray-600">Прогресс: ${progress}%</div>
+
+            <button onclick="openTopUpModal(${goal.id}, ${saved}, ${goal.amount}, '${goal.currency}')" class="text-sm text-blue-600 hover:underline">Пополнить</button>
+            <button onclick="deleteGoal(${goal.id})" class="text-sm text-red-600 hover:underline">Удалить</button>
         </div>
-        <div class="goal-info">
-            <span>Необходимая сумма:</span>
-            <span>${goal.amount.toLocaleString('ru-RU')} ${currencySymbols[goal.currency]}</span>
-        </div>
-        <div class="goal-info">
-            <span>Ежемесячный взнос:</span>
-            <span class="monthly-savings">${Math.ceil(goal.required_monthly_savings).toLocaleString('ru-RU')} ${currencySymbols[goal.currency]}</span>
-        </div>
-        <button onclick="deleteGoal(${goal.id})" class="mt-2 text-red-600 hover:underline">Удалить</button>
-    </div>
-`).join('');
+    `;
+        }).join('');
+
 
     } catch (error) {
         console.error("Ошибка загрузки данных:", error);
@@ -996,3 +1004,39 @@ cancelEditBtn.addEventListener('click', () => {
     disableProfileEditing();
 });
 
+function openTopUpModal(goalId, saved, maxAmount, currency) {
+    topUpGoalId.value = goalId;
+    topUpAmount.value = '';
+    topUpModal.classList.remove('hidden');
+}
+
+cancelTopUpBtn.addEventListener('click', () => topUpModal.classList.add('hidden'));
+
+topUpForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const goalId = topUpGoalId.value;
+    const addAmount = parseFloat(topUpAmount.value);
+    if (!goalId || isNaN(addAmount) || addAmount <= 0) return alert("Введите корректную сумму");
+
+    try {
+        const response = await fetch(`/api/goals/${goalId}/topup`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+            },
+            body: JSON.stringify({ amount: addAmount })
+        });
+
+        if (!response.ok) throw new Error("Ошибка пополнения");
+
+        alert("Цель пополнена!");
+        topUpModal.classList.add('hidden');
+        loadGoals();
+        loadStatistics();
+
+    } catch (err) {
+        console.error("Ошибка при пополнении:", err);
+        alert("Ошибка при пополнении цели.");
+    }
+});
