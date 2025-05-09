@@ -662,22 +662,24 @@ async function loadGoals() {
         }
 
         goalsList.innerHTML = goals.map(goal => `
-            <div class="goal-card">
-                <h3>${goal.title}</h3>
-                <div class="goal-info">
-                    <span>Цель до:</span>
-                    <span>${new Date(goal.target_date).toLocaleDateString('ru-RU')}</span>
-                </div>
-                <div class="goal-info">
-                    <span>Необходимая сумма:</span>
-                    <span>${goal.amount.toLocaleString('ru-RU')} ${currencySymbols[goal.currency]}</span>
-                </div>
-                <div class="goal-info">
-                    <span>Ежемесячный взнос:</span>
-                    <span class="monthly-savings">${Math.ceil(goal.required_monthly_savings).toLocaleString('ru-RU')} ${currencySymbols[goal.currency]}</span>
-                </div>
-            </div>
-        `).join('');
+    <div class="goal-card">
+        <h3>${goal.title}</h3>
+        <div class="goal-info">
+            <span>Цель до:</span>
+            <span>${new Date(goal.target_date).toLocaleDateString('ru-RU')}</span>
+        </div>
+        <div class="goal-info">
+            <span>Необходимая сумма:</span>
+            <span>${goal.amount.toLocaleString('ru-RU')} ${currencySymbols[goal.currency]}</span>
+        </div>
+        <div class="goal-info">
+            <span>Ежемесячный взнос:</span>
+            <span class="monthly-savings">${Math.ceil(goal.required_monthly_savings).toLocaleString('ru-RU')} ${currencySymbols[goal.currency]}</span>
+        </div>
+        <button onclick="deleteGoal(${goal.id})" class="mt-2 text-red-600 hover:underline">Удалить</button>
+    </div>
+`).join('');
+
     } catch (error) {
         console.error("Ошибка загрузки данных:", error);
         goalsList.innerHTML = `<p class="text-red-500">Ошибка загрузки данных. Попробуйте позже.</p>`;
@@ -714,22 +716,24 @@ async function loadExpenses() {
 
         // Отображение расходов
         expensesList.innerHTML = expenses.map(expense => `
-            <div class="expense-card">
-                <h3>${expense.title}</h3>
-                <div class="expense-info">
-                    <span>Сумма:</span>
-                    <span>${expense.amount.toLocaleString('ru-RU')} ₽</span>
-                </div>
-                <div class="expense-info">
-                    <span>Категория:</span>
-                    <span>${expense.category}</span>
-                </div>
-                <div class="expense-info">
-                    <span>Дата:</span>
-                    <span>${new Date(expense.date).toLocaleDateString('ru-RU')}</span>
-                </div>
-            </div>
-        `).join('');
+    <div class="expense-card">
+        <h3>${expense.title}</h3>
+        <div class="expense-info">
+            <span>Сумма:</span>
+            <span>${expense.amount.toLocaleString('ru-RU')} ₽</span>
+        </div>
+        <div class="expense-info">
+            <span>Категория:</span>
+            <span>${expense.category}</span>
+        </div>
+        <div class="expense-info">
+            <span>Дата:</span>
+            <span>${new Date(expense.date).toLocaleDateString('ru-RU')}</span>
+        </div>
+        <button onclick="deleteExpense(${expense.id})" class="mt-2 text-red-600 hover:underline">Удалить</button>
+    </div>
+`).join('');
+
     } catch (error) {
         console.error('Ошибка при загрузке расходов:', error);
         expensesList.innerHTML = `
@@ -754,4 +758,50 @@ function getCategoryName(category) {
         other: 'Другое'
     };
     return categories[category] || category;
+}
+
+async function deleteGoal(id) {
+    if (!confirm("Вы уверены, что хотите удалить эту цель?")) return;
+
+    try {
+        const response = await fetch(`/api/goals/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+            }
+        });
+
+        if (!response.ok) throw new Error("Ошибка при удалении цели");
+
+        alert("Цель удалена.");
+        loadGoals();
+        loadStatistics();
+
+    } catch (err) {
+        console.error("Ошибка удаления цели:", err);
+        alert("Ошибка при удалении цели.");
+    }
+}
+
+async function deleteExpense(id) {
+    if (!confirm("Вы уверены, что хотите удалить этот расход?")) return;
+
+    try {
+        const response = await fetch(`/api/expenses/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+            }
+        });
+
+        if (!response.ok) throw new Error("Ошибка при удалении расхода");
+
+        alert("Расход удалён.");
+        loadExpenses();
+        loadStatistics();
+
+    } catch (err) {
+        console.error("Ошибка удаления расхода:", err);
+        alert("Ошибка при удалении расхода.");
+    }
 }
