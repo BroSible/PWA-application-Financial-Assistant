@@ -289,10 +289,14 @@ async function handleLogin(e) {
     // Функция для переключения страниц
 function showPage(pageName) {
     currentPage = pageName;
+
+    // Скрываем все страницы
     goalsPage.classList.add('hidden');
     expensesPage.classList.add('hidden');
     statisticsPage.classList.add('hidden');
+    profilePage.classList.add('hidden'); // ← Добавляем скрытие профиля
 
+    // Показываем нужную страницу и загружаем данные
     switch (pageName) {
         case 'goals':
             goalsPage.classList.remove('hidden');
@@ -306,12 +310,13 @@ function showPage(pageName) {
             statisticsPage.classList.remove('hidden');
             loadStatistics();
             break;
-        case 'profile': // ← ДОБАВЬ ЭТО
+        case 'profile':
             profilePage.classList.remove('hidden');
             loadUserProfile();
             break;
     }
 }
+ы
 
 async function loadStatistics() {
     try {
