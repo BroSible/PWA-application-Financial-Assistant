@@ -98,6 +98,33 @@ namespace PWA_application_Financial_Assistant.Controllers
             return Ok(goal);
         }
 
+        // DELETE: api/goals/{id}
+        [HttpDelete("{id}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteGoal(int id)
+        {
+            var userId = GetUserIdFromToken(HttpContext);
+            if (userId == null)
+            {
+                _logger.LogWarning("Ошибка авторизации: userId не найден.");
+                return Unauthorized(new { message = "Не удалось получить идентификатор пользователя." });
+            }
+
+            var goal = await _context.Goals.FirstOrDefaultAsync(g => g.id == id && g.personId == userId.Value);
+            if (goal == null)
+            {
+                _logger.LogWarning("Цель с id {Id} не найдена для userId {UserId}.", id, userId.Value);
+                return NotFound(new { message = "Цель не найдена." });
+            }
+
+            _context.Goals.Remove(goal);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Цель с id {Id} удалена пользователем {UserId}.", id, userId.Value);
+            return NoContent();
+        }
+
+
         // GET: api/goals
         public async Task<IActionResult> GetGoals()
         {
@@ -120,3 +147,4 @@ namespace PWA_application_Financial_Assistant.Controllers
         }
     }
 }
+

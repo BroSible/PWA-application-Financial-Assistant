@@ -112,6 +112,33 @@ namespace PWA_application_Financial_Assistant.Controllers
             return Ok(expenses);
         }
 
+        // DELETE: api/expenses/{id}
+        [HttpDelete("{id}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteExpense(int id)
+        {
+            var userId = GetUserIdFromToken(HttpContext);
+            if (userId == null)
+            {
+                _logger.LogWarning("Ошибка авторизации: userId не найден.");
+                return Unauthorized(new { message = "Не удалось получить идентификатор пользователя." });
+            }
+
+            var expense = await _context.Expenses.FirstOrDefaultAsync(e => e.id == id && e.personid == userId.Value);
+            if (expense == null)
+            {
+                _logger.LogWarning("Расход с id {Id} не найден для userId {UserId}.", id, userId.Value);
+                return NotFound(new { message = "Расход не найден." });
+            }
+
+            _context.Expenses.Remove(expense);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Расход с id {Id} удалён пользователем {UserId}.", id, userId.Value);
+            return NoContent();
+        }
+
+
 
         // метод для извлечения userId из токена
         private int? GetUserIdFromToken(HttpContext httpContext)
@@ -126,3 +153,4 @@ namespace PWA_application_Financial_Assistant.Controllers
         }
     }
 }
+
