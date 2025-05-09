@@ -12,7 +12,6 @@ const uploadAvatarBtn = document.getElementById('uploadAvatarBtn');
 const profileUsername = document.getElementById('profileUsername');
 const profileBio = document.getElementById('profileBio');
 const profileBirthdate = document.getElementById('profileBirthdate');
-const saveProfileBtn = document.getElementById('saveProfileBtn');
 
 const showLoginBtn = document.getElementById('showLoginBtn');
 const showRegisterBtn = document.getElementById('showRegisterBtn');
@@ -35,6 +34,21 @@ const goalsPage = document.getElementById('goalsPage');
 const expensesPage = document.getElementById('expensesPage');
 const statisticsPage = document.getElementById('statisticsPage');
 const closeMenuBtn = document.getElementById('closeMenuBtn');
+
+const profileAvatarImage = document.getElementById('profileAvatarImage');
+const profileUsernameView = document.getElementById('profileUsernameView');
+const profileUsernameInput = document.getElementById('profileUsernameInput');
+const profileBioView = document.getElementById('profileBioView');
+const profileBioInput = document.getElementById('profileBioInput');
+const profileBirthdateView = document.getElementById('profileBirthdateView');
+const profileBirthdateInput = document.getElementById('profileBirthdateInput');
+
+const editProfileBtn = document.getElementById('editProfileBtn');
+const saveProfileBtn = document.getElementById('saveProfileBtn');
+const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+const avatarUploadControls = document.getElementById('avatarUploadControls');
+
 
 
     // Навигация между страницами
@@ -826,79 +840,154 @@ async function deleteExpense(id) {
     }
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+    loadUserProfile();
+
+    editProfileBtn.addEventListener('click', enableProfileEditing);
+    cancelEditBtn.addEventListener('click', () => {
+        loadUserProfile();
+        disableProfileEditing();
+    });
+
+    saveProfileBtn.addEventListener('click', async () => {
+        const body = {
+            username: profileUsernameInput.value.trim(),
+            bio: profileBioInput.value.trim(),
+            birthdate: profileBirthdateInput.value || null
+        };
+
+        try {
+            const response = await fetch('/api/userprofile/me', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
+                },
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) throw new Error("Ошибка сохранения");
+
+            alert('Профиль обновлён!');
+            await loadUserProfile();
+        } catch (err) {
+            console.error('Ошибка при обновлении профиля:', err);
+            alert('Ошибка при обновлении профиля');
+        }
+    });
+
+    uploadAvatarBtn.addEventListener('click', async () => {
+        const file = avatarInput.files[0];
+        if (!file) return alert("Выберите файл.");
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const response = await fetch('/api/userprofile/avatar', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
+                },
+                body: formData
+            });
+
+            if (!response.ok) throw new Error("Ошибка загрузки");
+
+            const data = await response.json();
+            profileAvatarImage.src = data.avatarUrl;
+            headerAvatar.src = data.avatarUrl;
+            alert('Фото обновлено!');
+        } catch (err) {
+            console.error("Ошибка при загрузке аватара:", err);
+            alert("Ошибка загрузки изображения");
+        }
+    });
+});
+
+
+async function updateHeaderProfile() {
+    try {
+        const response = await fetch('/api/userprofile/me', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
+            }
+        });
+
+        if (!response.ok) return;
+
+        const profile = await response.json();
+
+        document.getElementById("headerUsername").textContent = profile.username || "Пользователь";
+        document.getElementById("headerAvatar").src = profile.avatar_path || "/default-avatar.png";
+    } catch (err) {
+        console.warn("Не удалось обновить данные профиля в шапке:", err);
+    }
+}
+
 async function loadUserProfile() {
     try {
-        const response = await fetch('/api/UserProfile/me', {
+        const response = await fetch('/api/userprofile/me', {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
             }
         });
 
         if (!response.ok) throw new Error("Ошибка загрузки профиля");
-
         const profile = await response.json();
 
-        avatarImage.src = profile.avatar_path || 'default-avatar.png';
-        profileUsername.value = profile.username || '';
-        profileBio.value = profile.bio || '';
-        profileBirthdate.value = profile.birthdate ? profile.birthdate.slice(0, 10) : null;
+        // Отображение данных
+        profileAvatarImage.src = profile.avatar_path || '/default-avatar.png';
+        profileUsernameView.textContent = profile.username || '—';
+        profileUsernameInput.value = profile.username || '';
+        profileBioView.textContent = profile.bio || '—';
+        profileBioInput.value = profile.bio || '';
+        profileBirthdateView.textContent = profile.birthdate ? profile.birthdate.slice(0, 10) : '—';
+        profileBirthdateInput.value = profile.birthdate ? profile.birthdate.slice(0, 10) : '';
 
+        disableProfileEditing(); // изначально — просмотр
+        updateHeaderProfile();
     } catch (err) {
         console.error('Ошибка загрузки профиля:', err);
         alert('Ошибка при загрузке профиля');
     }
 }
 
-saveProfileBtn.addEventListener('click', async () => {
-    const body = {
-        username: profileUsername.value.trim(),
-        bio: profileBio.value.trim(),
-        birthdate: profileBirthdate.value || null
-    };
+function enableProfileEditing() {
+    profileUsernameView.classList.add('hidden');
+    profileUsernameInput.classList.remove('hidden');
 
-    try {
-        const response = await fetch('/api/UserProfile/me', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
-            },
-            body: JSON.stringify(body)
-        });
+    profileBioView.classList.add('hidden');
+    profileBioInput.classList.remove('hidden');
 
-        if (!response.ok) throw new Error("Ошибка сохранения");
+    profileBirthdateView.classList.add('hidden');
+    profileBirthdateInput.classList.remove('hidden');
 
-        alert('Профиль обновлён!');
-        await loadUserProfile();
-    } catch (err) {
-        console.error('Ошибка при обновлении профиля:', err);
-        alert('Ошибка при обновлении профиля');
-    }
+    avatarUploadControls.classList.remove('hidden');
+    saveProfileBtn.classList.remove('hidden');
+    cancelEditBtn.classList.remove('hidden');
+    editProfileBtn.classList.add('hidden');
+}
+
+function disableProfileEditing() {
+    profileUsernameView.classList.remove('hidden');
+    profileUsernameInput.classList.add('hidden');
+
+    profileBioView.classList.remove('hidden');
+    profileBioInput.classList.add('hidden');
+
+    profileBirthdateView.classList.remove('hidden');
+    profileBirthdateInput.classList.add('hidden');
+
+    avatarUploadControls.classList.add('hidden');
+    saveProfileBtn.classList.add('hidden');
+    cancelEditBtn.classList.add('hidden');
+    editProfileBtn.classList.remove('hidden');
+}
+
+editProfileBtn.addEventListener('click', enableProfileEditing);
+cancelEditBtn.addEventListener('click', () => {
+    loadUserProfile(); // перезагрузит значения
+    disableProfileEditing();
 });
 
-uploadAvatarBtn.addEventListener('click', async () => {
-    const file = avatarInput.files[0];
-    if (!file) return alert("Выберите файл.");
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-        const response = await fetch('/api/UserProfile/avatar', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
-            },
-            body: formData
-        });
-
-        if (!response.ok) throw new Error("Ошибка загрузки");
-
-        const data = await response.json();
-        avatarImage.src = data.avatarUrl;
-        alert('Фото обновлено!');
-    } catch (err) {
-        console.error("Ошибка при загрузке аватара:", err);
-        alert("Ошибка загрузки изображения");
-    }
-});

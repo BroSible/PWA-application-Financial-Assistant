@@ -68,8 +68,8 @@
                 </svg>
             </button>
             <div class="flex items-center gap-2">
-                <span class="text-white">Пользователь</span>
-                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">U</div>
+                <span id="headerUsername" class="text-white">Пользователь</span>
+                <img id="headerAvatar" src="/default-avatar.png" class="w-8 h-8 rounded-full object-cover border" alt="Аватар">
             </div>
         </header>
 
@@ -148,27 +148,53 @@
             <div id="profilePage" class="hidden space-y-4">
                 <div class="bg-white p-6 rounded-lg shadow-lg">
                     <h2 class="text-xl font-semibold mb-4">Профиль</h2>
-                    <div id="avatarBlock" class="flex flex-col items-center">
-                        <img id="avatarImage" src="" alt="Аватар" class="w-24 h-24 rounded-full object-cover border mb-2">
-                        <input type="file" id="avatarInput" accept="image/*" class="text-sm" />
-                        <button id="uploadAvatarBtn" class="mt-2 bg-gray-100 px-3 py-1 rounded hover:bg-gray-200 text-sm">Загрузить фото</button>
+
+                    <!-- Аватар -->
+                    <div class="flex items-center gap-4 mb-4">
+                        <img id="profileAvatarImage" src="" alt="Аватар" class="w-24 h-24 rounded-full object-cover border">
+                        <div class="hidden" id="avatarUploadControls">
+                            <label for="avatarInput" class="flex items-center gap-2 cursor-pointer text-sm mt-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Выберите файл
+                            </label>
+                            <input type="file" id="avatarInput" accept="image/*" class="hidden">
+                            <button id="uploadAvatarBtn" class="mt-2 bg-gray-100 px-3 py-1 rounded hover:bg-gray-200 text-sm">Загрузить</button>
+                        </div>
                     </div>
 
+
+                    <!-- Информация о пользователе -->
                     <div class="space-y-2">
-                        <label>Имя:</label>
-                        <input type="text" id="profileUsername" class="w-full border rounded px-2 py-1">
+                        <div>
+                            <label class="block text-sm font-medium">Имя:</label>
+                            <p id="profileUsernameView" class="text-gray-800"></p>
+                            <input type="text" id="profileUsernameInput" class="w-full border rounded px-2 py-1 hidden">
+                        </div>
 
-                        <label>Биография:</label>
-                        <textarea id="profileBio" class="w-full border rounded px-2 py-1"></textarea>
+                        <div>
+                            <label class="block text-sm font-medium">Биография:</label>
+                            <p id="profileBioView" class="text-gray-800 whitespace-pre-line"></p>
+                            <textarea id="profileBioInput" class="w-full border rounded px-2 py-1 hidden"></textarea>
+                        </div>
 
-                        <label>Дата рождения:</label>
-                        <input type="date" id="profileBirthdate" class="w-full border rounded px-2 py-1">
-
-                        <button id="saveProfileBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mt-4">Сохранить изменения</button>
+                        <div>
+                            <label class="block text-sm font-medium">Дата рождения:</label>
+                            <p id="profileBirthdateView" class="text-gray-800"></p>
+                            <input type="date" id="profileBirthdateInput" class="w-full border rounded px-2 py-1 hidden">
+                        </div>
                     </div>
-                    <button id="editProfileBtn" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Редактировать</button>
+
+                    <!-- Кнопки -->
+                    <div class="mt-4 flex gap-2">
+                        <button id="editProfileBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Редактировать</button>
+                        <button id="saveProfileBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 hidden">Сохранить</button>
+                        <button id="cancelEditBtn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 hidden">Отмена</button>
+                    </div>
                 </div>
             </div>
+
 
 
             <!-- Add Button -->
