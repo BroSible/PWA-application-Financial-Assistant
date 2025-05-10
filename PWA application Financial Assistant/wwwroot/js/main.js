@@ -55,6 +55,9 @@ const topUpGoalId = document.getElementById('topUpGoalId');
 const topUpAmount = document.getElementById('topUpAmount');
 const cancelTopUpBtn = document.getElementById('cancelTopUpBtn');
 
+const adminPage = document.getElementById('adminPage');
+const adminLink = document.getElementById('adminLink');
+
 
 
     // Навигация между страницами
@@ -91,6 +94,12 @@ document.addEventListener("DOMContentLoaded", async function () {
                 loadGoals();
                 loadExpenses();
                 loadStatistics();
+
+                if (data.role === 'Admin') {
+                    document.getElementById('adminLink').classList.remove('hidden');
+                } else {
+                    document.getElementById('adminLink').classList.add('hidden');
+                }
 
                 // Показываем страницу по умолчанию (например, статистику)
                 showPage('statistics');
@@ -196,6 +205,14 @@ expenseForm.addEventListener('submit', handleExpenseSubmit);
     showPage('profile');
     toggleMenu();
     });
+    adminLink.addEventListener('click', () => {
+    showPage('admin');
+    toggleMenu();
+    });
+shortLink.addEventListener('click', () => {
+    showPage('shorts');
+    toggleMenu();
+});
 
 
 
@@ -301,6 +318,8 @@ function showPage(pageName) {
     expensesPage.classList.add('hidden');
     statisticsPage.classList.add('hidden');
     profilePage.classList.add('hidden'); // ← Добавляем скрытие профиля
+    shortsPage.classList.add('hidden');
+    adminPage.classList.add('hidden'); // 👈 добавь эту строку
 
     // Показываем нужную страницу и загружаем данные
     switch (pageName) {
@@ -319,6 +338,12 @@ function showPage(pageName) {
         case 'profile':
             profilePage.classList.remove('hidden');
             loadUserProfile();
+            break;
+        case 'admin':
+            adminPage.classList.remove('hidden');
+            break;
+        case 'shorts':
+            shortsPage.classList.remove('hidden');
             break;
     }
 }
@@ -1038,5 +1063,45 @@ topUpForm.addEventListener('submit', async (e) => {
     } catch (err) {
         console.error("Ошибка при пополнении:", err);
         alert("Ошибка при пополнении цели.");
+    }
+});
+
+async function loadShorts() {
+    const res = await fetch('/api/shorts');
+    const shorts = await res.json();
+    const container = document.querySelector('#shortsPage .shorts-container');
+
+    container.innerHTML = '';
+    shorts.forEach(short => {
+        const item = document.createElement('div');
+        item.className = 'flex flex-col items-center shrink-0';
+        item.innerHTML = `
+            <video src="${short.filePath}" class="w-16 h-16 rounded-full border-2 border-blue-500 object-cover" muted autoplay loop></video>
+            <span class="text-xs mt-1">${short.title}</span>
+        `;
+        container.appendChild(item);
+    });
+}
+
+
+document.getElementById('uploadShortForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const data = new FormData(form);
+
+    const res = await fetch('/api/shorts/upload', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${accessToken}`
+        },
+        body: data
+    });
+
+    if (res.ok) {
+        alert("Успешно загружено!");
+        form.reset();
+        loadShorts();
+    } else {
+        alert("Ошибка загрузки.");
     }
 });

@@ -10,6 +10,8 @@ namespace PWA_application_Financial_Assistant
         public DbSet<Goals> Goals { get; set; }
         public DbSet<Expenses> Expenses { get; set; }
         public DbSet<UserProfile> UserProfiles { get; set; }
+        public DbSet<Short> Shorts { get; set; }
+
 
         public ApplicationContext(DbContextOptions<ApplicationContext> options)
             : base(options)
@@ -28,6 +30,9 @@ namespace PWA_application_Financial_Assistant
         public int personId { get; set; }
         public string email { get; set; }
         public string password { get; set; }
+
+        public string Role { get; set; } = "User";
+
     }
 
     public class Goals
@@ -65,6 +70,14 @@ namespace PWA_application_Financial_Assistant
 
         public DateTime? created_at { get; set; }
         public DateTime? updated_at { get; set; }
+    }
+
+    public class Short
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } // Название или подпись
+        public string FilePath { get; set; } // Относительный путь к файлу
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
 

@@ -92,12 +92,26 @@
                         </svg>
                         Статистика
                     </button>
+                    <button id="shortLink" class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-md flex items-center gap-2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20V4m-7 9l7-7 7 7"></path>
+                        </svg>
+                        Последние новости
+                    </button>
                     <button id="goalsLink" class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-md flex items-center gap-2">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 20V4m-7 9l7-7 7 7"></path>
                         </svg>
                         Мои цели
                     </button>
+                    <button id="adminLink" class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-md flex items-center gap-2 text-purple-600">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3h18v18H3z" />
+                        </svg>
+                        Админка
+                    </button>
+
+
                     <button id="expensesLink" class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-md flex items-center gap-2">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -137,6 +151,43 @@
                     <!-- Goals will be inserted here -->
                 </div>
             </div>
+
+            <!-- Admin Page -->
+            <div id="adminPage" class="space-y-4 hidden pt-24">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-xl font-bold mb-4">Добавить Short</h2>
+                    <form id="uploadShortForm" enctype="multipart/form-data">
+                        <input type="text" name="title" placeholder="Название" class="w-full border mb-2 px-2 py-1 rounded" required />
+                        <input type="file" name="file" accept="video/*" class="mb-2" required />
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Загрузить</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Shorts Page -->
+            <div id="shortsPage" class="space-y-4 hidden pt-19">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">Последние обновления</h2>
+
+                    <div class="flex space-x-4 overflow-x-auto">
+                        <div class="flex flex-col items-center shrink-0">
+                            <img src="/avatars/your-story.jpg" class="w-16 h-16 rounded-full border-2 border-blue-500" />
+                            <span class="text-xs mt-1">Вы</span>
+                        </div>
+                        <div class="flex flex-col items-center shrink-0">
+                            <img src="/avatars/user1.jpg" class="w-16 h-16 rounded-full border-2 border-pink-500" />
+                            <span class="text-xs mt-1">Анна</span>
+                        </div>
+                        <div class="flex flex-col items-center shrink-0">
+                            <img src="/avatars/user2.jpg" class="w-16 h-16 rounded-full border-2 border-yellow-400" />
+                            <span class="text-xs mt-1">Илья</span>
+                        </div>
+                        <!-- Дополнительные шортсы можно добавить здесь -->
+                    </div>
+                </div>
+            </div>
+
+
 
             <!-- Expenses Page -->
             <div id="expensesPage" class="space-y-4 hidden">
