@@ -211,9 +211,9 @@ expenseForm.addEventListener('submit', handleExpenseSubmit);
     });
 shortLink.addEventListener('click', () => {
     showPage('shorts');
+    loadShorts();
     toggleMenu();
 });
-
 
 
 
@@ -319,7 +319,11 @@ function showPage(pageName) {
     statisticsPage.classList.add('hidden');
     profilePage.classList.add('hidden'); // ← Добавляем скрытие профиля
     shortsPage.classList.add('hidden');
-    adminPage.classList.add('hidden'); // 👈 добавь эту строку
+    adminPage.classList.add('hidden'); //
+
+    if (pageName === 'shorts') {
+        loadShorts(); // Загрузка шортсов при переходе
+    }
 
     // Показываем нужную страницу и загружаем данные
     switch (pageName) {
@@ -1066,23 +1070,6 @@ topUpForm.addEventListener('submit', async (e) => {
     }
 });
 
-async function loadShorts() {
-    const res = await fetch('/api/shorts');
-    const shorts = await res.json();
-    const container = document.querySelector('#shortsPage .shorts-container');
-
-    container.innerHTML = '';
-    shorts.forEach(short => {
-        const item = document.createElement('div');
-        item.className = 'flex flex-col items-center shrink-0';
-        item.innerHTML = `
-            <video src="${short.filePath}" class="w-16 h-16 rounded-full border-2 border-blue-500 object-cover" muted autoplay loop></video>
-            <span class="text-xs mt-1">${short.title}</span>
-        `;
-        container.appendChild(item);
-    });
-}
-
 
 document.getElementById('uploadShortForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1092,7 +1079,7 @@ document.getElementById('uploadShortForm').addEventListener('submit', async (e) 
     const res = await fetch('/api/shorts/upload', {
         method: 'POST',
         headers: {
-            Authorization: `Bearer ${accessToken}`
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`
         },
         body: data
     });
@@ -1105,3 +1092,39 @@ document.getElementById('uploadShortForm').addEventListener('submit', async (e) 
         alert("Ошибка загрузки.");
     }
 });
+
+async function loadShorts() {
+    const accessToken = localStorage.getItem('accessToken');
+    const res = await fetch('/api/shorts', {
+        headers: {
+            Authorization: `Bearer ${accessToken}`
+        }
+    });
+
+    if (!res.ok) {
+        console.error('Ошибка при загрузке шортсов');
+        return;
+    }
+
+    const shorts = await res.json();
+    const container = document.getElementById('shortsContainer');
+    container.innerHTML = ''; // очистим
+
+    shorts.forEach(short => {
+        const video = document.createElement('video');
+        video.src = short.filePath;
+        video.controls = true;
+        video.classList.add('w-full', 'rounded');
+
+        const title = document.createElement('p');
+        title.textContent = short.title;
+        title.classList.add('text-sm', 'text-gray-700', 'mt-2');
+
+        const wrapper = document.createElement('div');
+        wrapper.appendChild(video);
+        wrapper.appendChild(title);
+
+        container.appendChild(wrapper);
+    });
+}
+

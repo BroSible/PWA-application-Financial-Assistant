@@ -25,9 +25,12 @@ public class ShortsController : ControllerBase
         return Ok(shorts);
     }
 
+
+
     [HttpPost("upload")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UploadShort([FromForm] IFormFile file, [FromForm] string title)
+
     {
         if (file == null || file.Length == 0)
             return BadRequest("Файл не выбран");
@@ -46,8 +49,10 @@ public class ShortsController : ControllerBase
         var shortEntry = new Short
         {
             Title = title,
-            FilePath = "/shorts/" + fileName
+            FilePath = "/shorts/" + fileName,
+            CreatedAt = DateTime.UtcNow // <--- добавьте это
         };
+
 
         _context.Shorts.Add(shortEntry);
         await _context.SaveChangesAsync();
