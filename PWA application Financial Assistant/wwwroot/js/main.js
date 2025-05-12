@@ -68,6 +68,7 @@ const adminLink = document.getElementById('adminLink');
 // Navigation state
 let currentPage = 'statistics';
 
+
 document.addEventListener("DOMContentLoaded", async function () {
     const accessToken = localStorage.getItem("accessToken");
     if (!accessToken) {
@@ -89,13 +90,18 @@ document.addEventListener("DOMContentLoaded", async function () {
         const session = await response.json();
         document.getElementById("headerUsername").textContent = session.username || "Пользователь";
 
-        if (session.role === 'Admin') {
-            adminLink?.classList.remove('hidden');
-        } else {
-            adminLink?.classList.add('hidden');
+        function updateMenu(session) {
+            const adminLink = document.getElementById('adminLink');
+
+            if (session.role === 'Admin') {
+                adminLink?.classList.remove('hidden');
+            } else {
+                adminLink?.classList.add('hidden');
+            }
         }
 
         updateMenu(session);
+
 
         loginForm.classList.add('hidden');
         registrationForm.classList.add('hidden');
@@ -128,27 +134,37 @@ document.addEventListener("DOMContentLoaded", async function () {
         disableProfileEditing();
     });
 
-    saveProfileBtn.addEventListener('click', async () => {
-        const username = profileUsernameInput.value.trim();
-        const bio = profileBioInput.value.trim();
-        const birthdate = profileBirthdateInput.value;
+const accessToken = localStorage.getItem('accessToken');
 
-        const res = await fetch('/api/userprofile/me', {
+saveProfileBtn.addEventListener('click', async () => {
+    const body = {
+        username: profileUsernameInput.value.trim(),
+        bio: profileBioInput.value.trim(),
+        birthdate: profileBirthdateInput.value ? new Date(profileBirthdateInput.value) : null
+    };
+
+    try {
+        const response = await fetch('/api/userprofile/me', {
             method: 'PUT',
             headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
             },
-            body: JSON.stringify({ username, bio, birthdate })
+            body: JSON.stringify(body)
         });
 
-        if (res.ok) {
-            loadUserProfile();
-            disableProfileEditing();
-        } else {
-            console.error("Ошибка обновления профиля");
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Ошибка сохранения");
         }
-    });
+
+        alert('Профиль обновлён!');
+        await loadUserProfile();
+    } catch (err) {
+        console.error('Ошибка при обновлении профиля:', err);
+        alert('Ошибка при обновлении профиля: ' + err.message);
+    }
+});
 
     uploadAvatarBtn.addEventListener('click', async () => {
         const file = avatarInput.files[0];
@@ -585,43 +601,33 @@ async function handleGoalSubmit(event) {
         return;
     }
 
-    const title = document.querySelector('[name="title"]').value.trim();
-    const target_date = document.querySelector('[name="targetDate"]').value;
-    const amount = parseFloat(document.querySelector('[name="amount"]').value);
-    const income = parseFloat(document.querySelector('[name="income"]').value);
-    const currency = document.querySelector('[name="currency"]').value.trim();
+    // Получаем значения из формы
+    const title = goalForm.querySelector('[name="title"]').value.trim();
+    const target_date = goalForm.querySelector('[name="targetDate"]').value;
+    const amount = parseFloat(goalForm.querySelector('[name="amount"]').value);
+    const income = parseFloat(goalForm.querySelector('[name="income"]').value);
+    const currency = goalForm.querySelector('[name="currency"]').value.trim();
 
-    if (!title || !target_date || amount <= 0 || income <= 0 || !currency) {
+    // Проверка данных
+    if (!title || !target_date || isNaN(amount) || amount <= 0 || isNaN(income) || income <= 0 || !currency) {
         console.error("Некорректные данные формы");
         alert("Все поля должны быть заполнены правильно.");
         return;
     }
 
-    // Calculate remaining time until target date
     const today = new Date();
     const targetDateObj = new Date(target_date);
-
-    // Разница в днях
     const daysUntilTarget = Math.max(1, Math.ceil((targetDateObj - today) / (1000 * 60 * 60 * 24)));
-
-    // Рассчитываем месяцы с учётом дней
-    const monthsUntilTarget = daysUntilTarget / 30.44; // Среднее количество дней в месяце
-
-    console.log(`Осталось дней: ${daysUntilTarget}, месяцев: ${monthsUntilTarget.toFixed(2)}`);
-
-    // Calculate required monthly savings
+    const monthsUntilTarget = daysUntilTarget / 30.44;
     const required_monthly_savings = amount / monthsUntilTarget;
-    const maxPossibleMonthlySavings = income * 0.5; // Assume max 50% of income can be saved
+    const maxPossibleMonthlySavings = income * 0.5;
 
     if (required_monthly_savings > maxPossibleMonthlySavings) {
-        alert('Внимание! С текущим доходом достижение цели к указанной дате может быть затруднительным. Рекомендуем увеличить срок или уменьшить целевую сумму.');
+        alert('С текущим доходом достичь цель может быть трудно. Увеличьте срок или уменьшите сумму.');
     }
 
-
-
-
     const goalData = {
-        personId: parsedUserId, // Используем parsedUserId
+        personId: parsedUserId,
         title,
         target_date,
         amount,
@@ -629,15 +635,10 @@ async function handleGoalSubmit(event) {
         currency,
     };
 
-    loadGoals();
-    loadStatistics();
-    goalModal.classList.add('hidden');
-    goalForm.reset();
-
     console.log("Отправляемые данные:", goalData);
 
     try {
-        const response = await fetch('https://localhost:7034/api/goals', {
+        const response = await fetch('/api/goals', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -656,13 +657,17 @@ async function handleGoalSubmit(event) {
         }
 
         alert('Цель успешно добавлена!');
-        event.target.reset();
+        goalForm.reset();
+        goalModal.classList.add('hidden');
+        loadGoals();
+        loadStatistics();
 
     } catch (error) {
         console.error("Ошибка запроса:", error);
         alert("Ошибка при сохранении цели. Проверьте консоль.");
     }
 }
+
 
 // Функция для скрытия модального окна (если нужно)
 function hideModal() {

@@ -56,7 +56,7 @@ namespace PWA_application_Financial_Assistant.Controllers
         // Обновление профиля
         [HttpPut("me")]
         [Authorize]
-        public async Task<IActionResult> UpdateMyProfile([FromBody] UserProfile updated)
+        public async Task<IActionResult> UpdateMyProfile([FromBody] UserProfileUpdateDto updated)
         {
             var userId = GetUserIdFromToken(HttpContext);
             if (userId == null)
@@ -65,22 +65,48 @@ namespace PWA_application_Financial_Assistant.Controllers
                 return Unauthorized();
             }
 
-            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.personId == userId);
-            if (profile == null)
+            try
             {
-                _logger.LogWarning("Профиль не найден для userId {UserId}", userId);
-                return NotFound();
+                var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.personId == userId);
+                if (profile == null)
+                {
+                    _logger.LogWarning("Профиль не найден для userId {UserId}", userId);
+                    return NotFound();
+                }
+
+                // Обновляем только разрешенные поля
+                profile.username = updated.username?.Trim();
+                profile.bio = updated.bio?.Trim();
+
+                // Обработка даты рождения
+                if (updated.birthdate.HasValue)
+                {
+                    profile.birthdate = updated.birthdate.Value;
+                }
+                else
+                {
+                    profile.birthdate = null;
+                }
+
+                profile.updated_at = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Профиль обновлён для userId {UserId}", userId);
+
+                return Ok(profile);
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при обновлении профиля для userId {UserId}", userId);
+                return StatusCode(500, new { message = "Ошибка при обновлении профиля" });
+            }
+        }
 
-            profile.username = updated.username?.Trim();
-            profile.bio = updated.bio?.Trim();
-            profile.birthdate = updated.birthdate?.ToUniversalTime();
-            profile.updated_at = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("Профиль обновлён для userId {UserId}", userId);
-
-            return Ok(profile);
+        public class UserProfileUpdateDto
+        {
+            public string? username { get; set; }
+            public string? bio { get; set; }
+            public DateTime? birthdate { get; set; }
         }
 
         // Загрузка аватара
