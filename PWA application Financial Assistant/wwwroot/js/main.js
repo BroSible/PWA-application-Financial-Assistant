@@ -55,6 +55,9 @@ const topUpGoalId = document.getElementById('topUpGoalId');
 const topUpAmount = document.getElementById('topUpAmount');
 const cancelTopUpBtn = document.getElementById('cancelTopUpBtn');
 
+const adminPage = document.getElementById('adminPage');
+const adminLink = document.getElementById('adminLink');
+
 
 
     // Навигация между страницами
@@ -67,62 +70,110 @@ let currentPage = 'statistics';
 
 document.addEventListener("DOMContentLoaded", async function () {
     const accessToken = localStorage.getItem("accessToken");
-    console.log("Токен доступа:", accessToken);  // Логируем значение токена
+    if (!accessToken) {
+        loginForm.classList.remove('hidden');
+        registrationForm.classList.add('hidden');
+        dashboard.classList.add('hidden');
+        return;
+    }
 
-    if (accessToken) {
-        try {
-            const response = await fetch('/check-session', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}` // Используем accessToken из localStorage
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log("Сессия активна:", data);
-
-                // Логика отображения интерфейса для авторизованного пользователя
-                loginForm.classList.add('hidden'); // Скрываем форму входа
-                registrationForm.classList.add('hidden'); // Скрываем форму регистрации
-                dashboard.classList.remove('hidden'); // Показываем дашборд
-
-                // Загружаем данные пользователя (например, цели и расходы)
-                loadGoals();
-                loadExpenses();
-                loadStatistics();
-
-                // Показываем страницу по умолчанию (например, статистику)
-                showPage('statistics');
-            } else {
-                console.log("Сессия недействительна. Код ответа:", response.status);
-                const errorDetails = await response.text();  // Получаем текст ошибки
-                console.error("Детали ошибки:", errorDetails);
-
-                // Очищаем localStorage и перенаправляем на страницу входа
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('userId');
-                loginForm.classList.remove('hidden');
-                registrationForm.classList.add('hidden');
-                dashboard.classList.add('hidden');
+    try {
+        const response = await fetch('/check-session', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
             }
-        } catch (error) {
-            console.error("Ошибка при проверке сессии:", error);
+        });
 
-            // Очищаем localStorage и перенаправляем на страницу входа
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('userId');
-            loginForm.classList.remove('hidden');
-            registrationForm.classList.add('hidden');
-            dashboard.classList.add('hidden');
+        if (!response.ok) throw new Error('Invalid session');
+
+        const session = await response.json();
+        document.getElementById("headerUsername").textContent = session.username || "Пользователь";
+
+        if (session.role === 'Admin') {
+            adminLink?.classList.remove('hidden');
+        } else {
+            adminLink?.classList.add('hidden');
         }
-    } else {
-        // Если токена нет, показываем форму входа
+
+        updateMenu(session);
+
+        loginForm.classList.add('hidden');
+        registrationForm.classList.add('hidden');
+        dashboard.classList.remove('hidden');
+
+        showPage('shorts');
+        loadGoals();
+        loadExpenses();
+        loadStatistics();
+        loadShorts();
+        loadUserProfile();
+
+    } catch (error) {
+        console.error("Ошибка при проверке сессии:", error);
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("userId");
+
         loginForm.classList.remove('hidden');
         registrationForm.classList.add('hidden');
         dashboard.classList.add('hidden');
     }
 });
+
+
+
+    // Инициализация кнопок редактирования профиля
+    editProfileBtn.addEventListener('click', enableProfileEditing);
+    cancelEditBtn.addEventListener('click', () => {
+        loadUserProfile();
+        disableProfileEditing();
+    });
+
+    saveProfileBtn.addEventListener('click', async () => {
+        const username = profileUsernameInput.value.trim();
+        const bio = profileBioInput.value.trim();
+        const birthdate = profileBirthdateInput.value;
+
+        const res = await fetch('/api/userprofile/me', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, bio, birthdate })
+        });
+
+        if (res.ok) {
+            loadUserProfile();
+            disableProfileEditing();
+        } else {
+            console.error("Ошибка обновления профиля");
+        }
+    });
+
+    uploadAvatarBtn.addEventListener('click', async () => {
+        const file = avatarInput.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch('/api/userprofile/avatar', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            },
+            body: formData
+        });
+
+        if (res.ok) {
+            const result = await res.json();
+            profileAvatarImage.src = result.avatarUrl;
+        } else {
+            console.error("Ошибка загрузки аватара");
+        }
+    });
+
+
 
 
 
@@ -196,7 +247,15 @@ expenseForm.addEventListener('submit', handleExpenseSubmit);
     showPage('profile');
     toggleMenu();
     });
-
+    adminLink.addEventListener('click', () => {
+    showPage('admin');
+    toggleMenu();
+    });
+shortLink.addEventListener('click', () => {
+    showPage('shorts');
+    loadShorts();
+    toggleMenu();
+});
 
 
 
@@ -301,6 +360,12 @@ function showPage(pageName) {
     expensesPage.classList.add('hidden');
     statisticsPage.classList.add('hidden');
     profilePage.classList.add('hidden'); // ← Добавляем скрытие профиля
+    shortsPage.classList.add('hidden');
+    adminPage.classList.add('hidden'); //
+
+    if (pageName === 'shorts') {
+        loadShorts(); // Загрузка шортсов при переходе
+    }
 
     // Показываем нужную страницу и загружаем данные
     switch (pageName) {
@@ -319,6 +384,12 @@ function showPage(pageName) {
         case 'profile':
             profilePage.classList.remove('hidden');
             loadUserProfile();
+            break;
+        case 'admin':
+            adminPage.classList.remove('hidden');
+            break;
+        case 'shorts':
+            shortsPage.classList.remove('hidden');
             break;
     }
 }
@@ -939,32 +1010,46 @@ async function updateHeaderProfile() {
 }
 
 async function loadUserProfile() {
+    const accessToken = localStorage.getItem("accessToken");
+    if (!accessToken) {
+        console.warn("Токен отсутствует — пользователь не авторизован");
+        return;
+    }
+
     try {
-        const response = await fetch('/api/userprofile/me', {
+        const res = await fetch('/api/userprofile/me', {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
+                'Authorization': `Bearer ${accessToken}`
             }
         });
 
-        if (!response.ok) throw new Error("Ошибка загрузки профиля");
-        const profile = await response.json();
+        if (!res.ok) {
+            const errText = await res.text();
+            console.error("Ответ сервера:", res.status, errText);
+            throw new Error("Ошибка загрузки профиля");
+        }
 
-        // Отображение данных
-        profileAvatarImage.src = profile.avatar_path || '/default-avatar.png';
-        profileUsernameView.textContent = profile.username || '—';
-        profileUsernameInput.value = profile.username || '';
-        profileBioView.textContent = profile.bio || '—';
-        profileBioInput.value = profile.bio || '';
-        profileBirthdateView.textContent = profile.birthdate ? profile.birthdate.slice(0, 10) : '—';
-        profileBirthdateInput.value = profile.birthdate ? profile.birthdate.slice(0, 10) : '';
+        const profile = await res.json();
 
-        disableProfileEditing(); // изначально — просмотр
-        updateHeaderProfile();
+        // Установка данных на страницу
+        profileUsernameView.textContent = profile.username || "Не указано";
+        profileBioView.textContent = profile.bio || "Не указано";
+        profileBirthdateView.textContent = profile.birthdate
+            ? new Date(profile.birthdate).toLocaleDateString()
+            : "Не указано";
+
+        profileUsernameInput.value = profile.username || "";
+        profileBioInput.value = profile.bio || "";
+        profileBirthdateInput.value = profile.birthdate
+            ? new Date(profile.birthdate).toISOString().split('T')[0]
+            : "";
+
+        profileAvatarImage.src = profile.avatar_path || "/default-avatar.png";
     } catch (err) {
-        console.error('Ошибка загрузки профиля:', err);
-        alert('Ошибка при загрузке профиля');
+        console.error("Ошибка загрузки профиля:", err);
     }
 }
+
 
 function enableProfileEditing() {
     profileUsernameView.classList.add('hidden');
@@ -1040,3 +1125,94 @@ topUpForm.addEventListener('submit', async (e) => {
         alert("Ошибка при пополнении цели.");
     }
 });
+
+
+document.getElementById('uploadShortForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const data = new FormData(form);
+
+    const res = await fetch('/api/shorts/upload', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: data
+    });
+
+    if (res.ok) {
+        alert("Успешно загружено!");
+        form.reset();
+        loadShorts();
+    } else {
+        alert("Ошибка загрузки.");
+    }
+});
+
+async function loadShorts() {
+    const accessToken = localStorage.getItem('accessToken');
+    const res = await fetch('/api/shorts', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+    });
+
+    if (!res.ok) {
+        console.error('Ошибка при загрузке шортсов');
+        return;
+    }
+
+    const shorts = await res.json();
+
+    const storiesContainer = document.getElementById('shortsStories');
+    const modal = document.getElementById('shortModal');
+    const modalVideo = document.getElementById('shortModalVideo');
+    const closeBtn = document.getElementById('closeShortModal');
+
+    storiesContainer.innerHTML = ''; 
+
+    shorts.forEach(short => {
+        const storyCircle = document.createElement('div');
+        storyCircle.className = 'flex-shrink-0 w-16 h-16 rounded-full bg-blue-200 border-4 border-blue-600 cursor-pointer flex items-center justify-center overflow-hidden';
+        storyCircle.title = short.title;
+
+        const previewImage = document.createElement('img');
+        previewImage.src = '/default-preview.png'; 
+        previewImage.alt = short.title;
+        previewImage.className = 'object-cover w-full h-full';
+
+        storyCircle.appendChild(previewImage);
+
+        storyCircle.addEventListener('click', () => {
+            modalVideo.src = short.filePath;
+            modal.classList.remove('hidden');
+            modalVideo.play();
+        });
+
+        storiesContainer.appendChild(storyCircle);
+    });
+
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            modalVideo.pause();
+            modalVideo.currentTime = 0;
+            modalVideo.src = '';
+        });
+    }
+}
+
+
+
+document.getElementById("closeShortModal").addEventListener("click", () => {
+    const modal = document.getElementById("shortModal");
+    const video = document.getElementById("shortModalVideo");
+    video.pause();
+    video.currentTime = 0;
+    modal.classList.add("hidden");
+});
+
+
+
+
+
+

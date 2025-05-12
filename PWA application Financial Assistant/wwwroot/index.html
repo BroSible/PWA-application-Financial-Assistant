@@ -92,12 +92,26 @@
                         </svg>
                         Статистика
                     </button>
+                    <button id="shortLink" class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-md flex items-center gap-2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20V4m-7 9l7-7 7 7"></path>
+                        </svg>
+                        Последние новости
+                    </button>
                     <button id="goalsLink" class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-md flex items-center gap-2">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 20V4m-7 9l7-7 7 7"></path>
                         </svg>
                         Мои цели
                     </button>
+                    <button id="adminLink" class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-md flex items-center gap-2 text-purple-600">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3h18v18H3z" />
+                        </svg>
+                        Админка
+                    </button>
+
+
                     <button id="expensesLink" class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-md flex items-center gap-2">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -138,6 +152,41 @@
                 </div>
             </div>
 
+            <!-- Admin Page -->
+            <div id="adminPage" class="space-y-4 hidden pt-24">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-xl font-bold mb-4">Добавить Short</h2>
+                    <form id="uploadShortForm" enctype="multipart/form-data">
+                        <input type="text" name="title" placeholder="Название" class="w-full border mb-2 px-2 py-1 rounded" required />
+                        <input type="file" name="file" accept="video/*" class="mb-2" required />
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Загрузить</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Shorts Page -->
+            <div id="shortsPage" class="space-y-4 hidden pt-23">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">Последние обновления</h2>
+                    <!-- Shorts Stories (Preview Circles) -->
+                    <div id="shortsStories" class="flex space-x-4 overflow-x-auto pb-4">
+                        <!-- Превьюшки появятся здесь -->
+                    </div>
+                    <!-- Shorts Modal -->
+                    <div id="shortModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+                        <div class="relative w-full max-w-md mx-4 bg-black rounded-lg overflow-hidden shadow-lg">
+                            <button id="closeShortModal" class="absolute top-2 right-2 text-white text-2xl z-10">&times;</button>
+                            <video id="shortModalVideo" controls class="w-full h-auto" autoplay></video>
+                        </div>
+                    </div>
+
+
+
+                    <div id="shortsContainer" class="space-y-6"></div>
+                    <!-- Видео вставятся сюда -->
+                </div>
+            </div>
+
             <!-- Expenses Page -->
             <div id="expensesPage" class="space-y-4 hidden">
                 <div id="expensesList">
@@ -145,7 +194,7 @@
                 </div>
             </div>
             <!-- Profile Page -->
-            <div id="profilePage" class="space-y-4 hidden">
+            <div id="profilePage" class="space-y-4 hidden pt-24">
                 <div class="bg-white p-6 rounded-lg shadow-lg">
                     <h2 class="text-xl font-semibold mb-4">Профиль</h2>
 
@@ -164,7 +213,6 @@
                         </div>
                     </div>
 
-
                     <!-- Информация о пользователе -->
                     <div class="space-y-2">
                         <div>
@@ -172,13 +220,11 @@
                             <p id="profileUsernameView" class="text-gray-800"></p>
                             <input type="text" id="profileUsernameInput" class="w-full border rounded px-2 py-1 hidden">
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium">Биография:</label>
                             <p id="profileBioView" class="text-gray-800 whitespace-pre-line"></p>
                             <textarea id="profileBioInput" class="w-full border rounded px-2 py-1 hidden"></textarea>
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium">Дата рождения:</label>
                             <p id="profileBirthdateView" class="text-gray-800"></p>
@@ -194,6 +240,7 @@
                     </div>
                 </div>
             </div>
+
 
 
 

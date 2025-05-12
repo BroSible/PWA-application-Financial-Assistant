@@ -128,7 +128,9 @@ app.MapPost("/login", async (Person loginData, ApplicationContext db) =>
     var claims = new List<Claim>
     {
         new Claim(ClaimTypes.NameIdentifier, person.personId.ToString()), // ”никальный userId
-        new Claim(ClaimTypes.Name, person.email) // Email или другие уникальные данные
+        new Claim(ClaimTypes.Name, person.email), // Email или другие уникальные данные
+        new Claim(ClaimTypes.Role, person.Role ?? "User")
+
     };
 
     var jwt = GenerateJwtToken(claims); // √енераци€ уникального токена
@@ -176,10 +178,14 @@ app.MapGet("/check-session", (HttpContext context, ILogger<Program> logger) =>
     {
         var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var username = user.FindFirst(ClaimTypes.Name)?.Value;
+        var role = user.FindFirst(ClaimTypes.Role)?.Value ?? "User";
+
+        
+
 
         logger.LogInformation("ѕользователь: {Username} с userId: {UserId}", username, userId);
 
-        return Results.Json(new { userId, username });
+        return Results.Json(new { userId, username, role });
     }
 
     logger.LogWarning("ѕользователь не авторизован.");
