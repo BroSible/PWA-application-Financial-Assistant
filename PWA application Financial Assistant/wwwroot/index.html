@@ -185,10 +185,41 @@
                     <div id="shortsContainer" class="space-y-6"></div>
                     <!-- Видео вставятся сюда -->
                 </div>
+                <!-- Блок курсов валют -->
+                <div class="mt-6 bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-xl font-bold mb-4">💱 Курсы валют (BYN)</h2>
+                    <ul id="exchangeRateList" class="divide-y divide-gray-200 text-gray-800">
+                        <!-- Частичные курсы -->
+                    </ul>
+                    <button id="viewAllRatesBtn" class="mt-4 text-blue-600 hover:underline font-medium">Посмотреть все</button>
+                </div>
+
+                <!-- Модальное окно со всеми курсами -->
+                <div id="currencyModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+                    <div class="bg-white w-[90%] max-w-2xl rounded-lg shadow-lg p-6 relative max-h-[80vh] overflow-y-auto">
+                        <button id="closeCurrencyModal" class="absolute top-2 right-3 text-gray-600 hover:text-black text-2xl">&times;</button>
+                        <h2 class="text-xl font-bold mb-4">🌍 Все курсы валют (BYN)</h2>
+                        <ul id="fullCurrencyList" class="divide-y divide-gray-200 text-gray-800">
+                            <!-- Все курсы -->
+                        </ul>
+                    </div>
+                </div>
             </div>
+
+
+
+
 
             <!-- Expenses Page -->
             <div id="expensesPage" class="space-y-4 hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <label for="sortExpenses" class="text-sm font-medium text-gray-700">Сортировать по:</label>
+                    <select id="sortExpenses" class="border rounded px-2 py-1 text-sm">
+                        <option value="date">Дате</option>
+                        <option value="amount">Сумме</option>
+                        <option value="category">Категории</option>
+                    </select>
+                </div>
                 <div id="expensesList">
                     <!-- Expenses will be inserted here -->
                 </div>
