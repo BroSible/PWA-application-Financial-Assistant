@@ -733,7 +733,7 @@ async function handleExpenseSubmit(e) {
     console.log("Отправляемые данные:", expenseData);
 
     try {
-        const response = await fetch('https://localhost:7034/api/expenses', {
+        const response = await fetch('/api/expenses', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
