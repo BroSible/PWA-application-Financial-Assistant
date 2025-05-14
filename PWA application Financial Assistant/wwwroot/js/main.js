@@ -58,6 +58,14 @@ const cancelTopUpBtn = document.getElementById('cancelTopUpBtn');
 const adminPage = document.getElementById('adminPage');
 const adminLink = document.getElementById('adminLink');
 
+let currencyRatesBYN = {};
+
+function convertToBYN(amount, currency) {
+    if (currency === "BYN") return amount;
+    const rate = currencyRatesBYN[currency];
+    return rate ? amount * rate : amount;
+}
+
 
 
     // Навигация между страницами
@@ -103,6 +111,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         showPage('shorts');
         loadGoals();
+        loadCurrencyRates();
         loadExpenses();
         loadStatistics();
         loadShorts();
@@ -832,7 +841,16 @@ async function loadExpenses() {
             return;
         }
 
+        document.getElementById('sortExpenses')?.addEventListener('change', loadExpenses);
+
         // Отображение расходов
+        const sortBy = document.getElementById('sortExpenses')?.value || 'date';
+        expenses.sort((a, b) => {
+            if (sortBy === 'amount') return b.amount - a.amount;
+            if (sortBy === 'category') return a.category.localeCompare(b.category);
+            return new Date(b.date) - new Date(a.date);
+        });
+
         expensesList.innerHTML = expenses.map(expense => `
     <div class="expense-card">
         <h3>${expense.title}</h3>
@@ -1210,6 +1228,61 @@ document.getElementById("closeShortModal").addEventListener("click", () => {
     video.currentTime = 0;
     modal.classList.add("hidden");
 });
+
+
+document.getElementById("viewAllRatesBtn").addEventListener("click", () => {
+    document.getElementById("currencyModal").classList.remove("hidden");
+});
+
+document.getElementById("closeCurrencyModal").addEventListener("click", () => {
+    document.getElementById("currencyModal").classList.add("hidden");
+});
+
+
+async function loadCurrencyRates() {
+    try {
+        const response = await fetch("https://api.nbrb.by/exrates/rates?periodicity=0");
+        if (!response.ok) throw new Error("Ошибка загрузки валют");
+
+        const data = await response.json();
+
+        
+        const previewList = document.getElementById("exchangeRateList");
+        const fullList = document.getElementById("fullCurrencyList");
+        if (previewList) previewList.innerHTML = '';
+        if (fullList) fullList.innerHTML = '';
+
+        
+        currencyRatesBYN = {};
+
+        data.forEach((rate, index) => {
+            const value = rate.Cur_OfficialRate / rate.Cur_Scale;
+            currencyRatesBYN[rate.Cur_Abbreviation] = value;
+
+            const listItem = `
+                <li class="flex justify-between py-2 border-b">
+                    <span>${rate.Cur_Name} (${rate.Cur_Abbreviation})</span>
+                    <span class="font-semibold">${value.toFixed(4)} BYN</span>
+                </li>
+            `;
+
+            if (previewList && index < 4) previewList.innerHTML += listItem;
+            if (fullList) fullList.innerHTML += listItem;
+        });
+
+        console.log("Курсы валют загружены:", currencyRatesBYN);
+    } catch (err) {
+        console.error("Ошибка при загрузке валют:", err);
+    }
+}
+
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    loadCurrencyRates();
+    setInterval(loadCurrencyRates, 60 * 60 * 1000); 
+});
+
 
 
 
