@@ -38,7 +38,7 @@ namespace PWA_application_Financial_Assistant
     public class Goals
     {
         public int id { get; set; }
-        public int personId { get; set; } // ID пользователя
+        public int personId { get; set; } 
         public string title { get; set; }
         public DateTime target_date { get; set; }
         public decimal amount { get; set; }
@@ -75,8 +75,8 @@ namespace PWA_application_Financial_Assistant
     public class Short
     {
         public int Id { get; set; }
-        public string Title { get; set; } // Название или подпись
-        public string FilePath { get; set; } // Относительный путь к файлу
+        public string Title { get; set; } 
+        public string FilePath { get; set; } 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 

@@ -53,7 +53,6 @@ namespace PWA_application_Financial_Assistant.Controllers
             return Ok(profile);
         }
 
-        // Обновление профиля
         [HttpPut("me")]
         [Authorize]
         public async Task<IActionResult> UpdateMyProfile([FromBody] UserProfileUpdateDto updated)
@@ -74,11 +73,9 @@ namespace PWA_application_Financial_Assistant.Controllers
                     return NotFound();
                 }
 
-                // Обновляем только разрешенные поля
                 profile.username = updated.username?.Trim();
                 profile.bio = updated.bio?.Trim();
 
-                // Обработка даты рождения
                 if (updated.birthdate.HasValue)
                 {
                     profile.birthdate = updated.birthdate.Value;
@@ -109,7 +106,6 @@ namespace PWA_application_Financial_Assistant.Controllers
             public DateTime? birthdate { get; set; }
         }
 
-        // Загрузка аватара
         [HttpPost("avatar")]
         [Authorize]
         public async Task<IActionResult> UploadAvatar(IFormFile file)
@@ -161,7 +157,6 @@ namespace PWA_application_Financial_Assistant.Controllers
             }
         }
 
-        // Получение userId из токена
         private int? GetUserIdFromToken(HttpContext context)
         {
             var claim = context.User.FindFirst(ClaimTypes.NameIdentifier);

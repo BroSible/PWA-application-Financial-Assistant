@@ -48,7 +48,6 @@ namespace PWA_application_Financial_Assistant.Controllers
 
             expenses.personid = userId.Value;
 
-            // Конвертация Date в UTC
             if (expenses.date != default)
             {
                 expenses.date = expenses.date.ToUniversalTime();
@@ -138,9 +137,6 @@ namespace PWA_application_Financial_Assistant.Controllers
             return NoContent();
         }
 
-
-
-        // метод для извлечения userId из токена
         private int? GetUserIdFromToken(HttpContext httpContext)
         {
             var claim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
