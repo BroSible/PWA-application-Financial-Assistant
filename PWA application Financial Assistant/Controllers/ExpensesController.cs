@@ -19,7 +19,6 @@ namespace PWA_application_Financial_Assistant.Controllers
             _logger = logger;
         }
 
-        // POST: api/expenses
         [HttpPost]
         [Authorize]
         public async Task<IActionResult> AddExpense([FromBody] Expenses expenses)
@@ -69,7 +68,6 @@ namespace PWA_application_Financial_Assistant.Controllers
             }
         }
 
-        // GET: api/expenses/{id}
         [HttpGet("{id}")]
         [Authorize]
         public async Task<IActionResult> GetExpense(int id)
@@ -94,7 +92,6 @@ namespace PWA_application_Financial_Assistant.Controllers
             return Ok(expense);
         }
 
-        // GET: api/expenses
         [HttpGet]
         [Authorize]
         public async Task<IActionResult> GetExpenses()
@@ -111,7 +108,6 @@ namespace PWA_application_Financial_Assistant.Controllers
             return Ok(expenses);
         }
 
-        // DELETE: api/expenses/{id}
         [HttpDelete("{id}")]
         [Authorize]
         public async Task<IActionResult> DeleteExpense(int id)

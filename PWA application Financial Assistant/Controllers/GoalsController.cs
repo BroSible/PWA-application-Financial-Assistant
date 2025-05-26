@@ -21,7 +21,6 @@ namespace PWA_application_Financial_Assistant.Controllers
             _logger = logger;
         }
 
-        // POST: api/goals
         [HttpPost]
         [Authorize]
         public async Task<IActionResult> AddGoal([FromBody] Goals goals)
@@ -51,7 +50,6 @@ namespace PWA_application_Financial_Assistant.Controllers
 
             goals.personId = userId.Value;
 
-            // Конвертация targetDate в UTC
             if (goals.target_date != default)
             {
                 goals.target_date = goals.target_date.ToUniversalTime();
@@ -72,7 +70,6 @@ namespace PWA_application_Financial_Assistant.Controllers
             }
         }
 
-        // PATCH: api/goals/{id}/topup
         [HttpPatch("{id}/topup")]
         [Authorize]
         public async Task<IActionResult> TopUpGoal(int id, [FromBody] TopUpRequest request)
@@ -117,9 +114,6 @@ namespace PWA_application_Financial_Assistant.Controllers
             public decimal Amount { get; set; }
         }
 
-
-
-        // GET: api/goals/{id}
         [HttpGet("{id}")]
         [Authorize]
         public async Task<IActionResult> GetGoal(int id)
@@ -144,7 +138,6 @@ namespace PWA_application_Financial_Assistant.Controllers
             return Ok(goal);
         }
 
-        // DELETE: api/goals/{id}
         [HttpDelete("{id}")]
         [Authorize]
         public async Task<IActionResult> DeleteGoal(int id)
@@ -170,8 +163,6 @@ namespace PWA_application_Financial_Assistant.Controllers
             return NoContent();
         }
 
-
-        // GET: api/goals
         public async Task<IActionResult> GetGoals()
         {
             var userId = GetUserIdFromToken(HttpContext);
@@ -180,7 +171,6 @@ namespace PWA_application_Financial_Assistant.Controllers
             return Ok(goals);
         }
 
-        // Метод для извлечения userId из токена
         private int? GetUserIdFromToken(HttpContext httpContext)
         {
             var claim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);

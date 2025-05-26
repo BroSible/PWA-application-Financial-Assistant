@@ -50,7 +50,7 @@ public class ShortsController : ControllerBase
         {
             Title = title,
             FilePath = "/shorts/" + fileName,
-            CreatedAt = DateTime.UtcNow // <--- добавьте это
+            CreatedAt = DateTime.UtcNow 
         };
 
 

@@ -1,4 +1,3 @@
-// DOM Elements
 const registrationForm = document.getElementById('registrationForm');
 const loginForm = document.getElementById('loginForm');
 const loginAuthForm = document.getElementById('loginAuthForm');
@@ -66,14 +65,10 @@ function convertToBYN(amount, currency) {
     return rate ? amount * rate : amount;
 }
 
-
-
-    // Навигация между страницами
     const goalsLink = document.getElementById('goalsLink');
     const expensesLink = document.getElementById('expensesLink');
     const statisticsLink = document.getElementById('statisticsLink');
 
-// Navigation state
 let currentPage = 'statistics';
 
 
@@ -134,9 +129,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 });
 
-
-
-    // Инициализация кнопок редактирования профиля
     editProfileBtn.addEventListener('click', enableProfileEditing);
     cancelEditBtn.addEventListener('click', () => {
         loadUserProfile();
@@ -198,13 +190,6 @@ saveProfileBtn.addEventListener('click', async () => {
         }
     });
 
-
-
-
-
-
-
-// Currency symbols mapping
 const currencySymbols = {
     'RUB': '₽',
     'BYN': 'Br',
@@ -215,9 +200,6 @@ const currencySymbols = {
     'CHF': '₣'
 };
 
-
-
-// Event Listeners for auth forms
 showLoginBtn.addEventListener('click', () => {
     registrationForm.classList.add('hidden');
     loginForm.classList.remove('hidden');
@@ -231,7 +213,6 @@ showRegisterBtn.addEventListener('click', () => {
 authForm.addEventListener('submit', handleRegistration);
 loginAuthForm.addEventListener('submit', handleLogin);
 
-// Event Listeners
 menuBtn.addEventListener('click', toggleMenu);
 closeMenuBtn.addEventListener('click', toggleMenu);
 logoutBtn.addEventListener('click', handleLogout);
@@ -249,11 +230,6 @@ cancelExpenseBtn.addEventListener('click', () => expenseModal.classList.add('hid
 goalForm.addEventListener('submit', handleGoalSubmit);
 expenseForm.addEventListener('submit', handleExpenseSubmit);
 
-
-
-
-
-    // Навигация по страницам
     goalsLink.addEventListener('click', () => {
         showPage('goals');
         toggleMenu();
@@ -282,9 +258,6 @@ shortLink.addEventListener('click', () => {
     toggleMenu();
 });
 
-
-
-// Auth handlers
 async function handleRegistration(e) {
     e.preventDefault();
     const email = document.getElementById('RegistrationEmail').value.trim();
@@ -304,7 +277,6 @@ async function handleRegistration(e) {
             body: JSON.stringify({ email, password })
         });
 
-        // Проверяем, есть ли в ответе JSON
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
             const data = await response.json();
@@ -317,7 +289,6 @@ async function handleRegistration(e) {
                 alert(`Ошибка регистрации: ${data.message || "Неизвестная ошибка"}`);
             }
         } else {
-            // Если ответ не JSON, выводим его текст
             const errorText = await response.text();
             console.error("Ошибка регистрации: ", errorText);
             alert(`Ошибка регистрации: Сервер вернул неожиданный ответ.`);
@@ -346,9 +317,8 @@ async function handleLogin(e) {
 
         if (response.ok) {
             const data = await response.json();
-            console.log("Ответ сервера:", data); // Логируем ответ сервера
+            console.log("Ответ сервера:", data); 
 
-            // Проверяем, что data содержит userId
             if (!data.userId) {
                 console.error("Ошибка: userId не найден в ответе сервера");
                 alert("Ошибка входа: userId не найден.");
@@ -357,9 +327,8 @@ async function handleLogin(e) {
 
             alert(`Добро пожаловать, ${data.username || "пользователь"}!`);
 
-            // Сохраняем accessToken и userId в localStorage
             localStorage.setItem('accessToken', data.access_token);
-            localStorage.setItem('userId', data.userId.toString()); // Убедитесь, что userId сохраняется как строка
+            localStorage.setItem('userId', data.userId.toString()); 
 
             loginForm.classList.add('hidden');
             dashboard.classList.remove('hidden');
@@ -373,26 +342,20 @@ async function handleLogin(e) {
     }
 }
 
-
-
-// Navigation functions
-    // Функция для переключения страниц
 function showPage(pageName) {
     currentPage = pageName;
 
-    // Скрываем все страницы
     goalsPage.classList.add('hidden');
     expensesPage.classList.add('hidden');
     statisticsPage.classList.add('hidden');
-    profilePage.classList.add('hidden'); // ← Добавляем скрытие профиля
+    profilePage.classList.add('hidden'); 
     shortsPage.classList.add('hidden');
-    adminPage.classList.add('hidden'); //
+    adminPage.classList.add('hidden'); 
 
     if (pageName === 'shorts') {
-        loadShorts(); // Загрузка шортсов при переходе
+        loadShorts(); 
     }
 
-    // Показываем нужную страницу и загружаем данные
     switch (pageName) {
         case 'goals':
             goalsPage.classList.remove('hidden');
@@ -567,9 +530,6 @@ async function loadStatistics() {
     }
 }
 
-
-
-
 function toggleMenu() {
     const isOpen = sideNav.classList.contains('translate-x-0');
     if (isOpen) {
@@ -581,7 +541,6 @@ function toggleMenu() {
     }
 }
 
-// Handle Logout
 function handleLogout() {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('userId');
@@ -592,7 +551,6 @@ function handleLogout() {
     sideNav.classList.add('-translate-x-full');
 }
 
-// Handle Goal Submit
 async function handleGoalSubmit(event) {
     event.preventDefault();
 
@@ -610,14 +568,12 @@ async function handleGoalSubmit(event) {
         return;
     }
 
-    // Получаем значения из формы
     const title = goalForm.querySelector('[name="title"]').value.trim();
     const target_date = goalForm.querySelector('[name="targetDate"]').value;
     const amount = parseFloat(goalForm.querySelector('[name="amount"]').value);
     const income = parseFloat(goalForm.querySelector('[name="income"]').value);
     const currency = goalForm.querySelector('[name="currency"]').value.trim();
 
-    // Проверка данных
     if (!title || !target_date || isNaN(amount) || amount <= 0 || isNaN(income) || income <= 0 || !currency) {
         console.error("Некорректные данные формы");
         alert("Все поля должны быть заполнены правильно.");
@@ -677,23 +633,16 @@ async function handleGoalSubmit(event) {
     }
 }
 
-
-// Функция для скрытия модального окна (если нужно)
 function hideModal() {
     const goalModal = document.getElementById('goalModal');
     goalModal.classList.add('hidden');
 }
 
-// Функция для отображения модального окна (если нужно)
 function showModal() {
     const goalModal = document.getElementById('goalModal');
     goalModal.classList.remove('hidden');
 }
 
-
-
-
-// Handle Expense Submit
 async function handleExpenseSubmit(e) {
     e.preventDefault();
 
@@ -727,7 +676,7 @@ async function handleExpenseSubmit(e) {
         title,
         amount: parseFloat(amount),
         category,
-        date: new Date(date).toISOString(), // Преобразуем в ISO-формат
+        date: new Date(date).toISOString(),
     };
 
     console.log("Отправляемые данные:", expenseData);
@@ -752,8 +701,8 @@ async function handleExpenseSubmit(e) {
         }
 
         alert('Расход успешно добавлен!');
-        loadExpenses(); // Обновляем список расходов
-        expenseModal.classList.add('hidden'); // Закрываем модальное окно
+        loadExpenses(); 
+        expenseModal.classList.add('hidden'); 
         expenseForm.reset();
 
     } catch (error) {
@@ -762,9 +711,6 @@ async function handleExpenseSubmit(e) {
     }
 }
 
-
-
-// Load Goals
 async function loadGoals() {
     try {
         const response = await fetch("/api/goals", {
@@ -818,25 +764,20 @@ async function loadGoals() {
     }
 }
 
-
-// Load Expenses
 async function loadExpenses() {
     try {
-        // Запрос к серверу для получения расходов
         const response = await fetch('/api/expenses', {
             headers: {
-                "Authorization": `Bearer ${localStorage.getItem("accessToken")}`  // Если используется авторизация
+                "Authorization": `Bearer ${localStorage.getItem("accessToken")}` 
             }
         });
 
-        // Проверка успешности ответа
         if (!response.ok) {
             throw new Error(`Ошибка при загрузке расходов: ${response.statusText}`);
         }
 
         const expenses = await response.json();
 
-        // Проверка, есть ли расходы
         if (expenses.length === 0) {
             expensesList.innerHTML = `
                 <div class="bg-white rounded-lg shadow-lg p-6 text-center animate-fadeIn">
@@ -848,7 +789,6 @@ async function loadExpenses() {
 
         document.getElementById('sortExpenses')?.addEventListener('change', loadExpenses);
 
-        // Отображение расходов
         const sortBy = document.getElementById('sortExpenses')?.value || 'date';
         expenses.sort((a, b) => {
             if (sortBy === 'amount') return b.amount - a.amount;
@@ -885,9 +825,6 @@ async function loadExpenses() {
     }
 }
 
-
-
-// Helper function to get category name
 function getCategoryName(category) {
     const categories = {
         food: 'Еда',
@@ -1054,7 +991,6 @@ async function loadUserProfile() {
 
         const profile = await res.json();
 
-        // Установка данных на страницу
         profileUsernameView.textContent = profile.username || "Не указано";
         profileBioView.textContent = profile.bio || "Не указано";
         profileBirthdateView.textContent = profile.birthdate
@@ -1108,7 +1044,7 @@ function disableProfileEditing() {
 
 editProfileBtn.addEventListener('click', enableProfileEditing);
 cancelEditBtn.addEventListener('click', () => {
-    loadUserProfile(); // перезагрузит значения
+    loadUserProfile(); 
     disableProfileEditing();
 });
 
@@ -1281,16 +1217,7 @@ async function loadCurrencyRates() {
     }
 }
 
-
-
 document.addEventListener("DOMContentLoaded", () => {
     loadCurrencyRates();
     setInterval(loadCurrencyRates, 60 * 60 * 1000); 
 });
-
-
-
-
-
-
-
