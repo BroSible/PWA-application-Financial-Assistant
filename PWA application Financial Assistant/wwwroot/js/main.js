@@ -7,6 +7,11 @@ const authForm = document.getElementById('authForm');
 const avatarImage = document.getElementById('avatarImage');
 const avatarInput = document.getElementById('avatarInput');
 const uploadAvatarBtn = document.getElementById('uploadAvatarBtn');
+const profilePage = document.getElementById('profilePage');
+const profileLink = document.getElementById('profileLink');
+const shortsPage = document.getElementById('shortsPage');
+const shortLink = document.getElementById('shortLink');
+const headerAvatar = document.getElementById('headerAvatar');
 
 const profileUsername = document.getElementById('profileUsername');
 const profileBio = document.getElementById('profileBio');
@@ -72,6 +77,16 @@ function convertToBYN(amount, currency) {
 let currentPage = 'statistics';
 
 
+function updateMenu(session) {
+    const adminLink = document.getElementById('adminLink');
+
+    if (session.role === 'Admin') {
+        adminLink?.classList.remove('hidden');
+    } else {
+        adminLink?.classList.add('hidden');
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async function () {
     const accessToken = localStorage.getItem("accessToken");
     if (!accessToken) {
@@ -93,30 +108,20 @@ document.addEventListener("DOMContentLoaded", async function () {
         const session = await response.json();
         document.getElementById("headerUsername").textContent = session.username || "Пользователь";
 
-        function updateMenu(session) {
-            const adminLink = document.getElementById('adminLink');
-
-            if (session.role === 'Admin') {
-                adminLink?.classList.remove('hidden');
-            } else {
-                adminLink?.classList.add('hidden');
-            }
-        }
-
         updateMenu(session);
-
 
         loginForm.classList.add('hidden');
         registrationForm.classList.add('hidden');
         dashboard.classList.remove('hidden');
 
-        showPage('shorts');
+        showPage('statistics'); 
         loadGoals();
         loadCurrencyRates();
         loadExpenses();
         loadStatistics();
         loadShorts();
-        loadUserProfile();
+        await loadUserProfile(); 
+        await updateHeaderProfile(); 
 
     } catch (error) {
         console.error("Ошибка при проверке сессии:", error);
@@ -161,34 +166,43 @@ saveProfileBtn.addEventListener('click', async () => {
 
         alert('Профиль обновлён!');
         await loadUserProfile();
+        disableProfileEditing();
     } catch (err) {
         console.error('Ошибка при обновлении профиля:', err);
         alert('Ошибка при обновлении профиля: ' + err.message);
     }
 });
 
-    uploadAvatarBtn.addEventListener('click', async () => {
-        const file = avatarInput.files[0];
-        if (!file) return;
+uploadAvatarBtn.addEventListener('click', async () => {
+    const file = avatarInput.files[0];
+    if (!file) return alert("Выберите файл.");
 
-        const formData = new FormData();
-        formData.append("file", file);
+    const formData = new FormData();
+    formData.append("file", file);
 
-        const res = await fetch('/api/userprofile/avatar', {
+    try {
+        const response = await fetch('/api/userprofile/avatar', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${accessToken}`
+                'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
             },
             body: formData
         });
 
-        if (res.ok) {
-            const result = await res.json();
-            profileAvatarImage.src = result.avatarUrl;
-        } else {
-            console.error("Ошибка загрузки аватара");
-        }
-    });
+        if (!response.ok) throw new Error("Ошибка загрузки");
+
+        const data = await response.json();
+
+        if (profileAvatarImage) profileAvatarImage.src = data.avatarUrl;
+
+        if (headerAvatar) headerAvatar.src = data.avatarUrl;
+
+        alert('Фото обновлено!');
+    } catch (err) {
+        console.error("Ошибка при загрузке аватара:", err);
+        alert("Ошибка загрузки изображения");
+    }
+});
 
 const currencySymbols = {
     'RUB': '₽',
@@ -348,13 +362,9 @@ function showPage(pageName) {
     goalsPage.classList.add('hidden');
     expensesPage.classList.add('hidden');
     statisticsPage.classList.add('hidden');
-    profilePage.classList.add('hidden'); 
+    profilePage.classList.add('hidden');
     shortsPage.classList.add('hidden');
-    adminPage.classList.add('hidden'); 
-
-    if (pageName === 'shorts') {
-        loadShorts(); 
-    }
+    adminPage.classList.add('hidden');
 
     switch (pageName) {
         case 'goals':
@@ -378,6 +388,7 @@ function showPage(pageName) {
             break;
         case 'shorts':
             shortsPage.classList.remove('hidden');
+            loadShorts(); 
             break;
     }
 }
@@ -884,71 +895,6 @@ async function deleteExpense(id) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadUserProfile();
-
-    editProfileBtn.addEventListener('click', enableProfileEditing);
-    cancelEditBtn.addEventListener('click', () => {
-        loadUserProfile();
-        disableProfileEditing();
-    });
-
-    saveProfileBtn.addEventListener('click', async () => {
-        const body = {
-            username: profileUsernameInput.value.trim(),
-            bio: profileBioInput.value.trim(),
-            birthdate: profileBirthdateInput.value || null
-        };
-
-        try {
-            const response = await fetch('/api/userprofile/me', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
-                },
-                body: JSON.stringify(body)
-            });
-
-            if (!response.ok) throw new Error("Ошибка сохранения");
-
-            alert('Профиль обновлён!');
-            await loadUserProfile();
-        } catch (err) {
-            console.error('Ошибка при обновлении профиля:', err);
-            alert('Ошибка при обновлении профиля');
-        }
-    });
-
-    uploadAvatarBtn.addEventListener('click', async () => {
-        const file = avatarInput.files[0];
-        if (!file) return alert("Выберите файл.");
-
-        const formData = new FormData();
-        formData.append("file", file);
-
-        try {
-            const response = await fetch('/api/userprofile/avatar', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem("accessToken")}`
-                },
-                body: formData
-            });
-
-            if (!response.ok) throw new Error("Ошибка загрузки");
-
-            const data = await response.json();
-            profileAvatarImage.src = data.avatarUrl;
-            headerAvatar.src = data.avatarUrl;
-            alert('Фото обновлено!');
-        } catch (err) {
-            console.error("Ошибка при загрузке аватара:", err);
-            alert("Ошибка загрузки изображения");
-        }
-    });
-});
-
 
 async function updateHeaderProfile() {
     try {
@@ -962,8 +908,11 @@ async function updateHeaderProfile() {
 
         const profile = await response.json();
 
-        document.getElementById("headerUsername").textContent = profile.username || "Пользователь";
-        document.getElementById("headerAvatar").src = profile.avatar_path || "/default-avatar.png";
+        const headerUsername = document.getElementById("headerUsername");
+        const headerAvatar = document.getElementById("headerAvatar");
+
+        if (headerUsername) headerUsername.textContent = profile.username || "Пользователь";
+        if (headerAvatar) headerAvatar.src = profile.avatar_path || "/default-avatar.png";
     } catch (err) {
         console.warn("Не удалось обновить данные профиля в шапке:", err);
     }
@@ -991,19 +940,30 @@ async function loadUserProfile() {
 
         const profile = await res.json();
 
-        profileUsernameView.textContent = profile.username || "Не указано";
-        profileBioView.textContent = profile.bio || "Не указано";
-        profileBirthdateView.textContent = profile.birthdate
-            ? new Date(profile.birthdate).toLocaleDateString()
-            : "Не указано";
+        if (profileUsernameView) profileUsernameView.textContent = profile.username || "Не указано";
+        if (profileBioView) profileBioView.textContent = profile.bio || "Не указано";
+        if (profileBirthdateView) {
+            profileBirthdateView.textContent = profile.birthdate
+                ? new Date(profile.birthdate).toLocaleDateString()
+                : "Не указано";
+        }
 
-        profileUsernameInput.value = profile.username || "";
-        profileBioInput.value = profile.bio || "";
-        profileBirthdateInput.value = profile.birthdate
-            ? new Date(profile.birthdate).toISOString().split('T')[0]
-            : "";
+        if (profileUsernameInput) profileUsernameInput.value = profile.username || "";
+        if (profileBioInput) profileBioInput.value = profile.bio || "";
+        if (profileBirthdateInput) {
+            profileBirthdateInput.value = profile.birthdate
+                ? new Date(profile.birthdate).toISOString().split('T')[0]
+                : "";
+        }
 
-        profileAvatarImage.src = profile.avatar_path || "/default-avatar.png";
+        const avatarUrl = profile.avatar_path || "/default-avatar.png";
+        if (profileAvatarImage) profileAvatarImage.src = avatarUrl;
+
+        if (headerAvatar) headerAvatar.src = avatarUrl;
+
+        const headerUsername = document.getElementById("headerUsername");
+        if (headerUsername) headerUsername.textContent = profile.username || "Пользователь";
+
     } catch (err) {
         console.error("Ошибка загрузки профиля:", err);
     }
