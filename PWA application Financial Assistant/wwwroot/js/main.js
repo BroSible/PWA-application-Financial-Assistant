@@ -1120,10 +1120,18 @@ async function loadUserProfile() {
         }
 
         if (profileBirthdateInput) {
-            profileBirthdateInput.value = profile.birthdate
-                ? new Date(profile.birthdate).toISOString().split('T')[0]
-                : "";
+            if (profile.birthdate) {
+                const date = new Date(profile.birthdate);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                profileBirthdateInput.value = `${year}-${month}-${day}`;
+            } else {
+                profileBirthdateInput.value = "";
+            }
         }
+
+
 
         if (profileUsernameInput) {
             profileUsernameInput.value = username;
