@@ -85,6 +85,15 @@ namespace PWA_application_Financial_Assistant.Controllers
                     profile.birthdate = null;
                 }
 
+                if (updated.salary.HasValue)
+                {
+                    profile.salary = updated.salary.Value;
+                }
+                else
+                {
+                    profile.salary = null;
+                }
+
 
                 profile.updated_at = DateTime.UtcNow;
 
