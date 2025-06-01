@@ -85,6 +85,7 @@ namespace PWA_application_Financial_Assistant.Controllers
                     profile.birthdate = null;
                 }
 
+
                 profile.updated_at = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();

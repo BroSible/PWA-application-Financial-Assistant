@@ -17,6 +17,10 @@ const profileUsername = document.getElementById('profileUsername');
 const profileBio = document.getElementById('profileBio');
 const profileBirthdate = document.getElementById('profileBirthdate');
 
+const profileSalaryView = document.getElementById('profileSalaryView');
+const profileSalaryInput = document.getElementById('profileSalaryInput');
+
+
 const showLoginBtn = document.getElementById('showLoginBtn');
 const showRegisterBtn = document.getElementById('showRegisterBtn');
 const menuBtn = document.getElementById('menuBtn');
@@ -146,8 +150,10 @@ saveProfileBtn.addEventListener('click', async () => {
     const body = {
         username: profileUsernameInput.value.trim(),
         bio: profileBioInput.value.trim(),
-        birthdate: profileBirthdateInput.value ? new Date(profileBirthdateInput.value) : null
+        birthdate: profileBirthdateInput.value ? new Date(profileBirthdateInput.value) : null,
+        salary: parseFloat(profileSalaryInput.value) || null
     };
+
 
     try {
         const response = await fetch('/api/userprofile/me', {
@@ -940,7 +946,8 @@ async function loadUserProfile() {
 
         const profile = await res.json();
 
-        if (profileUsernameView) profileUsernameView.textContent = profile.username || "Не указано";
+        if (profileSalaryView) profileSalaryView.textContent = profile.salary ? `${profile.salary} ₽` : "Не указано";
+        if (profileSalaryInput) profileSalaryInput.value = profile.salary || "";
         if (profileBioView) profileBioView.textContent = profile.bio || "Не указано";
         if (profileBirthdateView) {
             profileBirthdateView.textContent = profile.birthdate
@@ -984,6 +991,10 @@ function enableProfileEditing() {
     saveProfileBtn.classList.remove('hidden');
     cancelEditBtn.classList.remove('hidden');
     editProfileBtn.classList.add('hidden');
+
+    profileSalaryView.classList.add('hidden');
+    profileSalaryInput.classList.remove('hidden');
+
 }
 
 function disableProfileEditing() {
@@ -1000,6 +1011,10 @@ function disableProfileEditing() {
     saveProfileBtn.classList.add('hidden');
     cancelEditBtn.classList.add('hidden');
     editProfileBtn.classList.remove('hidden');
+
+    profileSalaryView.classList.remove('hidden');
+    profileSalaryInput.classList.add('hidden');
+
 }
 
 editProfileBtn.addEventListener('click', enableProfileEditing);

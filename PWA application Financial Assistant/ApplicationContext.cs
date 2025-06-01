@@ -60,6 +60,7 @@ namespace PWA_application_Financial_Assistant
     }
     public class UserProfile
     {
+
         public int id { get; set; }
         public int personId { get; set; }
 
@@ -70,6 +71,8 @@ namespace PWA_application_Financial_Assistant
 
         public DateTime? created_at { get; set; }
         public DateTime? updated_at { get; set; }
+
+        public decimal? salary { get; set; }
     }
 
     public class Short
