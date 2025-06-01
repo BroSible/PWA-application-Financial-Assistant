@@ -20,6 +20,8 @@ const profileBirthdate = document.getElementById('profileBirthdate');
 const profileSalaryView = document.getElementById('profileSalaryView');
 const profileSalaryInput = document.getElementById('profileSalaryInput');
 
+const headerUsername = document.getElementById("headerUsername");
+
 
 const showLoginBtn = document.getElementById('showLoginBtn');
 const showRegisterBtn = document.getElementById('showRegisterBtn');
@@ -101,16 +103,34 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     try {
-        const response = await fetch('/check-session', {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        });
+        const [sessionResponse, profileResponse] = await Promise.all([
+            fetch('/check-session', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            }),
+            fetch('/api/userprofile/me', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            })
+        ]);
 
-        if (!response.ok) throw new Error('Invalid session');
+        if (!sessionResponse.ok) throw new Error('Invalid session');
 
-        const session = await response.json();
-        document.getElementById("headerUsername").textContent = session.username || "Пользователь";
+        const session = await sessionResponse.json();
+        const profile = profileResponse.ok ? await profileResponse.json() : null;
+
+        const headerUsername = document.getElementById("headerUsername");
+        const headerAvatar = document.getElementById("headerAvatar");
+
+        if (headerUsername) {
+            headerUsername.textContent = profile?.username || session.username || "Пользователь";
+        }
+
+        if (headerAvatar) {
+            headerAvatar.src = profile?.avatar_path || "/default-avatar.png";
+        }
 
         updateMenu(session);
 
@@ -118,17 +138,15 @@ document.addEventListener("DOMContentLoaded", async function () {
         registrationForm.classList.add('hidden');
         dashboard.classList.remove('hidden');
 
-        showPage('statistics'); 
+        showPage('statistics');
         loadGoals();
         loadCurrencyRates();
         loadExpenses();
         loadStatistics();
         loadShorts();
-        await loadUserProfile(); 
-        await updateHeaderProfile(); 
 
     } catch (error) {
-        console.error("Ошибка при проверке сессии:", error);
+        console.error("Ошибка при инициализации:", error);
         localStorage.removeItem("accessToken");
         localStorage.removeItem("userId");
 
