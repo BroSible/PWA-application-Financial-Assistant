@@ -1091,6 +1091,10 @@ async function loadUserProfile() {
             headerUsername.textContent = username;
         }
 
+        if (profileUsernameInput) profileUsernameInput.value = profile.username || "";
+        if (profileUsernameView) profileUsernameView.textContent = profile.username || "Не указано";
+
+
         if (profileSalaryView) {
             profileSalaryView.textContent = profile.salary
                 ? `${profile.salary.toLocaleString('ru-RU')} ₽`
