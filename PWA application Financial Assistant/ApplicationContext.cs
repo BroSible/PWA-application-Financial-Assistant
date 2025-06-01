@@ -42,7 +42,7 @@ namespace PWA_application_Financial_Assistant
         public string title { get; set; }
         public DateTime target_date { get; set; }
         public decimal amount { get; set; }
-        public decimal income { get; set; }
+        public decimal? income { get; set; } 
         public string currency { get; set; }
         public decimal required_monthly_savings { get; set; }
         public decimal saved { get; set; } = 0;

@@ -237,10 +237,35 @@ menuBtn.addEventListener('click', toggleMenu);
 closeMenuBtn.addEventListener('click', toggleMenu);
 logoutBtn.addEventListener('click', handleLogout);
 addBtn.addEventListener('click', () => typeModal.classList.remove('hidden'));
-addGoalType.addEventListener('click', () => {
-    typeModal.classList.add('hidden');
-    goalModal.classList.remove('hidden');
+
+addGoalType.addEventListener('click', async () => {
+    try {
+        const response = await fetch('/api/userprofile/me', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+            }
+        });
+
+        if (response.ok) {
+            const profile = await response.json();
+            if (!profile.salary) {
+                alert('Пожалуйста, укажите ваш доход в профиле перед созданием цели');
+                showPage('profile');
+                return;
+            }
+        } else {
+            console.error('Ошибка при загрузке профиля');
+        }
+
+        typeModal.classList.add('hidden');
+        goalModal.classList.remove('hidden');
+    } catch (error) {
+        console.error("Ошибка при проверке профиля:", error);
+        alert('Произошла ошибка при проверке профиля');
+    }
 });
+
+
 addExpenseType.addEventListener('click', () => {
     typeModal.classList.add('hidden');
     expenseModal.classList.remove('hidden');
@@ -578,48 +603,58 @@ async function handleGoalSubmit(event) {
         return;
     }
 
-    const parsedUserId = parseInt(userId, 10);
-    if (isNaN(parsedUserId)) {
-        console.error("Ошибка: userId не является числом");
-        alert("Ошибка: userId не является числом.");
-        return;
-    }
-
-    const title = goalForm.querySelector('[name="title"]').value.trim();
-    const target_date = goalForm.querySelector('[name="targetDate"]').value;
-    const amount = parseFloat(goalForm.querySelector('[name="amount"]').value);
-    const income = parseFloat(goalForm.querySelector('[name="income"]').value);
-    const currency = goalForm.querySelector('[name="currency"]').value.trim();
-
-    if (!title || !target_date || isNaN(amount) || amount <= 0 || isNaN(income) || income <= 0 || !currency) {
-        console.error("Некорректные данные формы");
-        alert("Все поля должны быть заполнены правильно.");
-        return;
-    }
-
-    const today = new Date();
-    const targetDateObj = new Date(target_date);
-    const daysUntilTarget = Math.max(1, Math.ceil((targetDateObj - today) / (1000 * 60 * 60 * 24)));
-    const monthsUntilTarget = daysUntilTarget / 30.44;
-    const required_monthly_savings = amount / monthsUntilTarget;
-    const maxPossibleMonthlySavings = income * 0.5;
-
-    if (required_monthly_savings > maxPossibleMonthlySavings) {
-        alert('С текущим доходом достичь цель может быть трудно. Увеличьте срок или уменьшите сумму.');
-    }
-
-    const goalData = {
-        personId: parsedUserId,
-        title,
-        target_date,
-        amount,
-        income,
-        currency,
-    };
-
-    console.log("Отправляемые данные:", goalData);
-
     try {
+        // Получаем профиль пользователя
+        const profileResponse = await fetch('/api/userprofile/me', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+            }
+        });
+
+        if (!profileResponse.ok) {
+            throw new Error("Не удалось загрузить профиль пользователя");
+        }
+
+        const profile = await profileResponse.json();
+
+        if (!profile.salary) {
+            alert("Пожалуйста, укажите ваш доход в профиле перед созданием цели");
+            showPage('profile');
+            goalModal.classList.add('hidden');
+            return;
+        }
+
+        const title = goalForm.querySelector('[name="title"]').value.trim();
+        const target_date = goalForm.querySelector('[name="targetDate"]').value;
+        const amount = parseFloat(goalForm.querySelector('[name="amount"]').value);
+        const currency = goalForm.querySelector('[name="currency"]').value.trim();
+
+        if (!title || !target_date || isNaN(amount) || amount <= 0 || !currency) {
+            console.error("Некорректные данные формы");
+            alert("Все поля должны быть заполнены правильно.");
+            return;
+        }
+
+        const today = new Date();
+        const targetDateObj = new Date(target_date);
+        const daysUntilTarget = Math.max(1, Math.ceil((targetDateObj - today) / (1000 * 60 * 60 * 24)));
+        const monthsUntilTarget = daysUntilTarget / 30.44;
+        const required_monthly_savings = amount / monthsUntilTarget;
+        const maxPossibleMonthlySavings = profile.salary * 0.5;
+
+        if (required_monthly_savings > maxPossibleMonthlySavings) {
+            alert('С текущим доходом достичь цель может быть трудно. Увеличьте срок или уменьшите сумму.');
+        }
+
+        const goalData = {
+            personId: parseInt(userId, 10),
+            title,
+            target_date,
+            amount,
+            income: profile.salary, // Используем доход из профиля
+            currency,
+        };
+
         const response = await fetch('/api/goals', {
             method: 'POST',
             headers: {
@@ -628,8 +663,6 @@ async function handleGoalSubmit(event) {
             },
             body: JSON.stringify(goalData)
         });
-
-        console.log("Статус ответа:", response.status);
 
         if (!response.ok) {
             const errorData = await response.json();
