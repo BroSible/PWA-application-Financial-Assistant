@@ -105,6 +105,9 @@ namespace PWA_application_Financial_Assistant.Controllers
             public string? username { get; set; }
             public string? bio { get; set; }
             public DateTime? birthdate { get; set; }
+
+            public decimal? salary { get; set; }
+
         }
 
         [HttpPost("avatar")]
