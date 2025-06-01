@@ -216,14 +216,26 @@ uploadAvatarBtn.addEventListener('click', async () => {
         if (!response.ok) throw new Error("Ошибка загрузки");
 
         const data = await response.json();
+        const timestamp = Date.now();
+        const avatarUrl = `${data.avatarUrl}?t=${timestamp}`;
 
-        if (profileAvatarImage) profileAvatarImage.src = data.avatarUrl;
+        if (profileAvatarImage) {
+            profileAvatarImage.src = avatarUrl;
+            profileAvatarImage.onerror = () => {
+                profileAvatarImage.src = `/default-avatar.png?t=${timestamp}`;
+            };
+        }
 
-        if (headerAvatar) headerAvatar.src = data.avatarUrl;
+        if (headerAvatar) {
+            headerAvatar.src = avatarUrl;
+            headerAvatar.onerror = () => {
+                headerAvatar.src = `/default-avatar.png?t=${timestamp}`;
+            };
+        }
 
         alert('Фото обновлено!');
     } catch (err) {
-        console.error("Ошибка при загрузке аватара:", err);
+        console.error("Ошибка при загрузке аватарки:", err);
         alert("Ошибка загрузки изображения");
     }
 });
@@ -380,7 +392,6 @@ async function handleLogin(e) {
 
         if (response.ok) {
             const data = await response.json();
-            console.log("Ответ сервера:", data); 
 
             if (!data.userId) {
                 console.error("Ошибка: userId не найден в ответе сервера");
@@ -388,20 +399,70 @@ async function handleLogin(e) {
                 return;
             }
 
-            alert(`Добро пожаловать, ${data.username || "пользователь"}!`);
+            localStorage.clear();
 
             localStorage.setItem('accessToken', data.access_token);
-            localStorage.setItem('userId', data.userId.toString()); 
+            localStorage.setItem('userId', data.userId.toString());
+
+            await updateUserUI(data.access_token);
 
             loginForm.classList.add('hidden');
             dashboard.classList.remove('hidden');
             showPage('statistics');
+
+            alert(`Добро пожаловать, ${data.username || "пользователь"}!`);
         } else {
             alert('Неправильный email или пароль.');
         }
     } catch (err) {
         console.error('Ошибка входа:', err);
         alert('Произошла ошибка при входе.');
+    }
+}
+
+async function updateUserUI(token) {
+    try {
+        const [profileResponse, sessionResponse] = await Promise.all([
+            fetch('/api/userprofile/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch('/check-session', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+        ]);
+
+        if (!sessionResponse.ok) throw new Error('Invalid session');
+
+        const profile = profileResponse.ok ? await profileResponse.json() : null;
+        const session = await sessionResponse.json();
+
+        const timestamp = Date.now();
+        const avatarUrl = profile?.avatar_path
+            ? `${profile.avatar_path}?t=${timestamp}`
+            : `/default-avatar.png?t=${timestamp}`;
+
+        if (headerAvatar) {
+            headerAvatar.src = avatarUrl;
+            headerAvatar.onerror = () => {
+                headerAvatar.src = `/default-avatar.png?t=${timestamp}`;
+            };
+        }
+
+        if (profileAvatarImage) {
+            profileAvatarImage.src = avatarUrl;
+            profileAvatarImage.onerror = () => {
+                profileAvatarImage.src = `/default-avatar.png?t=${timestamp}`;
+            };
+        }
+
+        if (headerUsername) {
+            headerUsername.textContent = profile?.username || session.username || "Пользователь";
+        }
+
+        updateMenu(session);
+
+    } catch (error) {
+        console.error("Ошибка при обновлении UI:", error);
     }
 }
 
@@ -609,6 +670,13 @@ function handleLogout() {
     loginForm.classList.add('hidden');
     sideNav.classList.remove('translate-x-0');
     sideNav.classList.add('-translate-x-full');
+
+    if (headerAvatar) headerAvatar.src = '/default-avatar.png?t=' + Date.now();
+    if (profileAvatarImage) profileAvatarImage.src = '/default-avatar.png?t=' + Date.now();
+
+    localStorage.clear();
+
+    window.location.href = 'index.html?logout=' + Date.now();
 }
 
 async function handleGoalSubmit(event) {
@@ -622,7 +690,6 @@ async function handleGoalSubmit(event) {
     }
 
     try {
-        // Получаем профиль пользователя
         const profileResponse = await fetch('/api/userprofile/me', {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
@@ -669,7 +736,7 @@ async function handleGoalSubmit(event) {
             title,
             target_date,
             amount,
-            income: profile.salary, // Используем доход из профиля
+            income: profile.salary, 
             currency,
         };
 
@@ -983,47 +1050,93 @@ async function loadUserProfile() {
     }
 
     try {
-        const res = await fetch('/api/userprofile/me', {
+  
+        const response = await fetch('/api/userprofile/me', {
             headers: {
                 'Authorization': `Bearer ${accessToken}`
             }
         });
 
-        if (!res.ok) {
-            const errText = await res.text();
-            console.error("Ответ сервера:", res.status, errText);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Ошибка загрузки профиля:", response.status, errorText);
             throw new Error("Ошибка загрузки профиля");
         }
 
-        const profile = await res.json();
+        const profile = await response.json();
+        const timestamp = Date.now(); 
 
-        if (profileSalaryView) profileSalaryView.textContent = profile.salary ? `${profile.salary} ₽` : "Не указано";
-        if (profileSalaryInput) profileSalaryInput.value = profile.salary || "";
-        if (profileBioView) profileBioView.textContent = profile.bio || "Не указано";
-        if (profileBirthdateView) {
-            profileBirthdateView.textContent = profile.birthdate
-                ? new Date(profile.birthdate).toLocaleDateString()
+        const avatarUrl = profile.avatar_path
+            ? `${profile.avatar_path}?t=${timestamp}`
+            : `/default-avatar.png?t=${timestamp}`;
+
+        if (headerAvatar) {
+            headerAvatar.src = ''; 
+            headerAvatar.src = avatarUrl;
+            headerAvatar.onerror = () => {
+                headerAvatar.src = `/default-avatar.png?t=${timestamp}`;
+            };
+        }
+
+        if (profileAvatarImage) {
+            profileAvatarImage.src = ''; 
+            profileAvatarImage.src = avatarUrl;
+            profileAvatarImage.onerror = () => {
+                profileAvatarImage.src = `/default-avatar.png?t=${timestamp}`;
+            };
+        }
+
+        const username = profile.username || "Пользователь";
+        if (headerUsername) {
+            headerUsername.textContent = username;
+        }
+
+        if (profileSalaryView) {
+            profileSalaryView.textContent = profile.salary
+                ? `${profile.salary.toLocaleString('ru-RU')} ₽`
                 : "Не указано";
         }
 
-        if (profileUsernameInput) profileUsernameInput.value = profile.username || "";
-        if (profileBioInput) profileBioInput.value = profile.bio || "";
+        if (profileSalaryInput) {
+            profileSalaryInput.value = profile.salary || "";
+        }
+
+        if (profileBioView) {
+            profileBioView.textContent = profile.bio || "Не указано";
+        }
+
+        if (profileBioInput) {
+            profileBioInput.value = profile.bio || "";
+        }
+
+        if (profileBirthdateView) {
+            profileBirthdateView.textContent = profile.birthdate
+                ? new Date(profile.birthdate).toLocaleDateString('ru-RU')
+                : "Не указано";
+        }
+
         if (profileBirthdateInput) {
             profileBirthdateInput.value = profile.birthdate
                 ? new Date(profile.birthdate).toISOString().split('T')[0]
                 : "";
         }
 
-        const avatarUrl = profile.avatar_path || "/default-avatar.png";
-        if (profileAvatarImage) profileAvatarImage.src = avatarUrl;
+        if (profileUsernameInput) {
+            profileUsernameInput.value = username;
+        }
 
-        if (headerAvatar) headerAvatar.src = avatarUrl;
+        console.log("Профиль пользователя успешно загружен");
 
-        const headerUsername = document.getElementById("headerUsername");
-        if (headerUsername) headerUsername.textContent = profile.username || "Пользователь";
+    } catch (error) {
+        console.error("Ошибка загрузки профиля:", error);
+        const timestamp = Date.now();
+        if (headerAvatar) headerAvatar.src = `/default-avatar.png?t=${timestamp}`;
+        if (profileAvatarImage) profileAvatarImage.src = `/default-avatar.png?t=${timestamp}`;
+        if (headerUsername) headerUsername.textContent = "Пользователь";
 
-    } catch (err) {
-        console.error("Ошибка загрузки профиля:", err);
+        if (currentPage === 'profile') {
+            alert("Не удалось загрузить данные профиля. Пожалуйста, попробуйте позже.");
+        }
     }
 }
 
@@ -1246,4 +1359,13 @@ async function loadCurrencyRates() {
 document.addEventListener("DOMContentLoaded", () => {
     loadCurrencyRates();
     setInterval(loadCurrencyRates, 60 * 60 * 1000); 
+});
+
+window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        const accessToken = localStorage.getItem("accessToken");
+        if (accessToken) {
+            updateUserUI(accessToken);
+        }
+    }
 });
