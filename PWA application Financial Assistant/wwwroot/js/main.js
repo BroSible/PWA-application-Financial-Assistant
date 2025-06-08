@@ -542,11 +542,11 @@ async function loadStatistics() {
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">Сумма целей</span>
-                        <span class="stat-value">${totalGoalAmount.toLocaleString('ru-RU')} ₽</span>
+                        <span class="stat-value">${totalGoalAmount.toLocaleString('ru-RU')} Br</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">Сумма расходов</span>
-                        <span class="stat-value">${totalExpenseAmount.toLocaleString('ru-RU')} ₽</span>
+                        <span class="stat-value">${totalExpenseAmount.toLocaleString('ru-RU')} Br</span>
                     </div>
                 </div>
                 <div class="flex flex-col items-center justify-center gap-6">
@@ -566,7 +566,7 @@ async function loadStatistics() {
                 data: {
                     labels: goalTitles,
                     datasets: [{
-                        label: 'Цели (₽)',
+                        label: 'Цели (Br)',
                         data: goalAmounts,
                         backgroundColor: '#60a5fa'
                     }]
@@ -624,7 +624,7 @@ async function loadStatistics() {
                 data: {
                     labels: categoryLabels,
                     datasets: [{
-                        label: 'Сумма расходов (₽)',
+                        label: 'Сумма расходов (Br)',
                         data: categoryAmounts,
                         backgroundColor: categoryColors
                     }]
@@ -633,7 +633,7 @@ async function loadStatistics() {
                     responsive: true,
                     plugins: {
                         legend: { display: true, position: 'bottom' },
-                        title: { display: true, text: 'Категории расходов (₽)' }
+                        title: { display: true, text: 'Категории расходов (Br)' }
                     }
                 }
             });
@@ -936,7 +936,7 @@ async function loadExpenses() {
         <h3>${expense.title}</h3>
         <div class="expense-info">
             <span>Сумма:</span>
-            <span>${expense.amount.toLocaleString('ru-RU')} ₽</span>
+            <span>${expense.amount.toLocaleString('ru-RU')} Br</span>
         </div>
         <div class="expense-info">
             <span>Категория:</span>
@@ -1097,7 +1097,7 @@ async function loadUserProfile() {
 
         if (profileSalaryView) {
             profileSalaryView.textContent = profile.salary
-                ? `${profile.salary.toLocaleString('ru-RU')} ₽`
+                ? `${profile.salary.toLocaleString('ru-RU')} Br`
                 : "Не указано";
         }
 
