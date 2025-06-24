@@ -152,7 +152,7 @@ static string GenerateJwtToken(List<Claim> claims)
         issuer: AuthOptions.ISSUER,
         audience: AuthOptions.AUDIENCE,
         claims: claims, 
-        expires: DateTime.UtcNow.AddMinutes(60), 
+        expires: DateTime.UtcNow.AddDays(1), 
         signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256)
     );
 
