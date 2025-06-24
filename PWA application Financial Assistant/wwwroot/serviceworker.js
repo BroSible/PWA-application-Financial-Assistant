@@ -8,7 +8,6 @@ self.addEventListener('activate', function (event) {
 });
 
 self.addEventListener('fetch', function (event) {
-    // Не перехватываем запросы к манифесту, devtools и т.п.
     if (event.request.url.includes('manifest.webmanifest') ||
         event.request.url.includes('browserLinkSignalR') ||
         event.request.mode === 'navigate') {
