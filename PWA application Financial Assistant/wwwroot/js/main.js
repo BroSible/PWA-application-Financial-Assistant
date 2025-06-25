@@ -903,7 +903,7 @@ async function loadExpenses() {
     try {
         const response = await fetch('/api/expenses', {
             headers: {
-                "Authorization": `Bearer ${localStorage.getItem("accessToken")}` 
+                "Authorization": `Bearer ${localStorage.getItem("accessToken")}`
             }
         });
 
@@ -940,7 +940,7 @@ async function loadExpenses() {
         </div>
         <div class="expense-info">
             <span>Категория:</span>
-            <span>${expense.category}</span>
+            <span>${getCategoryName(expense.category)}</span>
         </div>
         <div class="expense-info">
             <span>Дата:</span>
@@ -968,6 +968,8 @@ function getCategoryName(category) {
         shopping: 'Покупки',
         health: 'Здоровье',
         utilities: 'Коммунальные услуги',
+        education: 'Образование',
+        housing: 'Жильё',
         other: 'Другое'
     };
     return categories[category] || category;
